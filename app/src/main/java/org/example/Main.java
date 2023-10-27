@@ -2,6 +2,7 @@ package org.example;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jgrapht.Graph;
 
 import java.util.Scanner;
 
@@ -18,6 +19,7 @@ public class Main {
         try{
             parsedInput = gson.fromJson(inputJson, Json.class);
             Entity[] entities = parsedInput.getBlueprint().getEntities();
+
             for (Entity entity : entities ) {
                 System.out.println("############");
                 System.out.println(entity.name);
