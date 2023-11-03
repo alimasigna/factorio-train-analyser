@@ -20,60 +20,43 @@ public class Main {
         try{
             parsedInput = gson.fromJson(inputJson, Json.class);
             Entity[] entities = parsedInput.getBlueprint().getEntities(); //TODO only parse tracks, signals, etc
-            createBetterMatrix(entities);
-            for (Entity entity : entities ) {
-                System.out.println("############");
-                System.out.println(entity.name);
-                System.out.println(entity.position.x);
-                System.out.println(entity.position.y);
+            entities = filterEntities(entities);
+            //debug output
+            for(Entity entity : entities) {
+                System.out.println("######");
+                System.out.println(entity.name + " " + "dir: "+ entity.direction+" x: " + entity.position.x + " y: " + entity.position.y);
             }
+            createBetterMatrix(entities);
+
         } catch (Exception e) {
             System.out.printf(e.getMessage());
         }
     }
 
-    /*public Entity[][] createMatrix(Entity[] entities) {
-        //TODO only take entities that are tracks or signals todo this is old cz we have tracks on teh same x nad y
-        double lowX = entities[0].position.x;
-        double highX = entities[0].position.x;
-        double lowY = entities[0].position.y;
-        double highY = entities[0].position.y;
+    public Entity[] normalizeEntities(Entity[] entities) {
+        entities = filterEntities(entities);
+
+        return null;
+    }
+
+    public Entity[] filterEntities(Entity[] entities) {
+        ArrayList<Entity> buffer = new ArrayList<Entity>();
         for(Entity entity : entities) {
-            if(entity.position.x < lowX){
-                lowX = entity.position.x;
-            }
-            if(entity.position.x > highX){
-                highX = entity.position.x;
-            }
-            if(entity.position.y < lowY) {
-                lowY = entity.position.y;
-            }
-            if(entity.position.y > highY) {
-                highY = entity.position.y;
+            switch (entity.name) {
+                case "curved-rail":
+                case "straight-rail":
+                case "train-stop":
+                case "rail-signal":
+                case "rail-chain-signal":
+                    buffer.add(entity);
+                    break;
             }
         }
-        int xDimensionLength = (int) Math.abs(highX - lowX) + 1;
-        int yDimensionLength = (int) Math.abs(highY - lowY) + 1;
-        Entity[][] entityMatrix = new Entity[xDimensionLength][yDimensionLength];
-        for(Entity entity : entities) {
-            int adjustedX = (int) (entity.position.x - lowX);
-            int adjustedY = (int) (entity.position.y - lowY);
-            entityMatrix[adjustedX][adjustedY] = entity;
-        }
-        for(int i = 0; i< entityMatrix.length; i++){
-            for(int j = 0; j<entityMatrix[i].length; j++){
-                if(entityMatrix[i][j] == null) {
-                    System.out.print(".");
-                    continue;
-                }
-                System.out.print("#");
-            }
-            System.out.print("\n");
-        }
-        return entityMatrix;
-    }*/
+        return buffer.toArray(new Entity[buffer.size()]);
+    }
 
     public ArrayList<Entity>[][] createBetterMatrix(Entity[] entities) {
+        //setting lowX and highX coords
         double lowX = entities[0].position.x;
         double highX = entities[0].position.x;
         double lowY = entities[0].position.y;
@@ -92,10 +75,14 @@ public class Main {
                 highY = entity.position.y;
             }
         }
+        //calculates height and width of the array
         int xDimensionLength = (int) Math.abs(highX - lowX) + 1;
         int yDimensionLength = (int) Math.abs(highY - lowY) + 1;
+        //creating a 2D array with an array list full of enitities
         ArrayList<Entity>[][] entityMatrix = new ArrayList[xDimensionLength][yDimensionLength];
+        //writing entites in matrix
         for(Entity entity : entities) {
+            //normalyzing of koords
             int adjustedX = (int) (entity.position.x - lowX);
             int adjustedY = (int) (entity.position.y - lowY);
             if(entityMatrix[adjustedX][adjustedY] == null)
@@ -103,21 +90,24 @@ public class Main {
             entityMatrix[adjustedX][adjustedY].add(entity);
         }
 
+        //TODO this is a debug print
         for(int i = 0; i< entityMatrix.length; i++){
             for(int j = 0; j<entityMatrix[i].length; j++){
                 if(entityMatrix[i][j] == null) {
-                    System.out.print(".");
+                    System.out.print(" . ");
                     continue;
                 }
                 if (entityMatrix[i][j].size()>1) {
-                    System.out.print("+");
+                    System.out.print(" + ");
                     continue;
                 }
-                System.out.print("#");
+                System.out.print(" # ");
             }
             System.out.print("\n");
         }
-        return null;
+
+
+        return entityMatrix;
     }
     public String readJsonFile() {
         System.out.println("Please enter Factorio JSON: ");
