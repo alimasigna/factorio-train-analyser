@@ -7,7 +7,7 @@ A edge is summation of multiple train tracks. The edge start and ends on a (chai
 ## Section
 A section consists out of multiple edges. A section is definied by (chain)signals.  \
 In our example there is a section S1 = {R1, R2, R3} and a section S' = {R', R'', R''', R'''', R'''''}. In our deadlock analysis we use this to know where we dont have to simulate trains. If there is a train in R1, we know that there cannot be a train in R2 and R3. \
-S' is again a special section that consists out of edges that are always free (R', ...). We assume that S' is always free because it consists out of edges that are always free. \
+S' is again a special section that consists out of edges that are always free (R', ...). We assume that S' is always free because it consists out of edges that are always free.
 
 ## Directions
 For our analysis we generate a graph that emulates the possible movement directions of the given blueprint. This is the graph for our example: \
@@ -32,16 +32,16 @@ So if our trains wants to drive into R1, R'''' also has to be free. This is triv
 ## Deadlock Example
 ![A deadlock crossing](deadlock.png)
 ### Edges
-R1, R2, R3, R4, R5, R6, R7, R8, R', R'', R''', R'''', ... \
+R1, R2, R3, R4, R5, R6, R7, R8, R', R'', R''', R'''', ...
 ### Section
 S' = {R', R'', R''', ...} \
 S1 = {R1, R2}; S2 = {R3, R4} \
-S3 = {R5, R6}; S4 = {R7, R8} \
+S3 = {R5, R6}; S4 = {R7, R8}
 ### Directions
 R'''' -> R3 -> R1 -> R' \
 R'''''''' -> R7 -> R5 -> R''''' \
 R'''''' -> R6 -> R4 -> R''' \
-R'' -> R1 -> R8 -> R''''''' \
+R'' -> R1 -> R8 -> R'''''''
 ### Dependencies
 there are no chain signals -> no dependencies
 ### Example
@@ -53,7 +53,7 @@ T2 = R7 -> R5 \
 T3 = R6 -> R4 \
 Now we create our resource graph. To do this we lookup in which Section S the trains is and in which Section S the trains wants to drive in.
 ##### Example
-T0 is in S2 and requests S1: S2->T0->S1 \
+T0 is in S2 and requests S1: S2->T0->S1
 #### Full graph
 S2 -> T0 -> S1 -> T1 -> S4 -> T2 -> S3 -> T3 -> S2 \
 We now have a loop in our graph which means this possible train configuration creates a deadlock of our intersection.
