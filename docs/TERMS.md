@@ -46,14 +46,14 @@ R'' -> R1 -> R8 -> R'''''''
 there are no chain signals -> no dependencies
 ### Example
 Trains can be compared to processes or threads. A process uses certain resources and requests resources. A train is in a section and he wants to drive to another section. Our goal is to create a resource graph of what resource a train has and which resource a trains wants.
-To start we define 4 trains:
-T0 = R3 -> R1 //T0 is in edge R3 and wants to drive into edge R1
-T1 = R2 -> R8
-T2 = R7 -> R5
-T3 = R6 -> R4
+#### To start we define 4 trains
+- T0 = R3 -> R1 //T0 is in edge R3 and wants to drive into edge R1
+- T1 = R2 -> R8
+- T2 = R7 -> R5
+- T3 = R6 -> R4
 Now we create our resource graph. To do this we lookup in which Section S the trains is and in which Section S the trains wants to drive in.
-Example:
+##### Example
 T0 is in S2 and requests S1: S2->T0->S1
-Full graph:
-S2 -> T0 -> S1 -> T1 -> S4 -> T2 -> S3 -> T3 -> S2
+#### Full graph
+- S2 -> T0 -> S1 -> T1 -> S4 -> T2 -> S3 -> T3 -> S2
 We now have a loop in our graph which means this possible train configuration creates a deadlock of our intersection.
