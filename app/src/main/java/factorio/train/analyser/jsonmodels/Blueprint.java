@@ -11,16 +11,4 @@ public class Blueprint {
     public Entity[] getEntities() {
         return entities;
     }
-
-    public void setEntities(Entity[] entities) {
-        this.entities = entities;
-    }
-
-    public Icon[] getIcons() {
-        return icons;
-    }
-
-    public void setIcons(Icon[] icons) {
-        this.icons = icons;
-    }
 }

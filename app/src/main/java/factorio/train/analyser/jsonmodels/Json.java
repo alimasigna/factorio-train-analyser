@@ -9,8 +9,4 @@ public class Json {
     public Blueprint getBlueprint() {
         return blueprint;
     }
-
-    public void setBlueprint(Blueprint blueprint) {
-        this.blueprint = blueprint;
-    }
 }
