@@ -5,17 +5,36 @@ package factorio.train.analyser;
 
 import java.io.UnsupportedEncodingException;
 import java.util.zip.DataFormatException;
-
+import java.util.Scanner;
 import factorio.train.analyser.Decoder.Decoder;
 
 public class App {
     public String decode() throws UnsupportedEncodingException, DataFormatException {
         Decoder decoder = new Decoder();
-        String decoded = decoder.decode();
+        String decoded = decoder.decode(readJsonFile());
         return "string: "+decoded;
     }
 
     public static void main(String[] args) throws UnsupportedEncodingException, DataFormatException {
         System.out.println(new App().decode());
+    }
+
+    public String readJsonFile() {
+
+        System.out.println("Please enter Factorio JSON: ");
+        Scanner myScanner = new Scanner(System.in);
+
+        StringBuilder encodedString = new StringBuilder();
+
+        String line;
+        while (myScanner.hasNextLine()) {
+            line = myScanner.nextLine();
+            if (line.isEmpty()) {
+                break;
+            }
+            encodedString.append(line);
+        }
+        myScanner.close();
+        return encodedString.toString();
     }
 }
