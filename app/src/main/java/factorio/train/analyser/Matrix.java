@@ -23,20 +23,20 @@ public class Matrix {
     private ArrayList<Entity>[][] matrix;
 
     /** Creates a speicific matrix object with a given jsonString.
-     * @param jsonAsString The JsonString that will be used to generate a Json object.
+     * @param jsonString The JsonString that will be used to generate a Json object.
      * */
-    public Matrix(String jsonAsString){ //TODO change this to the class Laurin will create!
-        setJson(jsonAsString);
+    public Matrix(String jsonString){
+        setJson(jsonString);
         setEntities();
         setMatrix();
     }
 
     /** This will initialize the private Json field with a given Json String.
-     * @param jsonAsString The JsonString that will be parsed into a Json object.
+     * @param jsonString The JsonString that will be parsed into a Json object.
      * */
-    private void setJson(String jsonAsString) { //TODO change this to the class Laurn will create!
+    private void setJson(String jsonString) {
         JsonBuilder builder = new JsonBuilder();
-        json = builder.create(jsonAsString);
+        json = builder.create(jsonString);
     }
 
     /** This setter will init the entities field and filter it.
@@ -53,7 +53,7 @@ public class Matrix {
         return matrix;
     }
 
-    /**This will initialize the private matrix field from the Json field.
+    /** This will initialize the private matrix field from the Json field.
      * */
     private void setMatrix() {
         if(json == null || entities==null) return;
