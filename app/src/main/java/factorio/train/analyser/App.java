@@ -3,12 +3,19 @@
  */
 package factorio.train.analyser;
 
+import java.io.UnsupportedEncodingException;
+import java.util.zip.DataFormatException;
+
+import factorio.train.analyser.Decoder.Decoder;
+
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
+    public String decode() throws UnsupportedEncodingException, DataFormatException {
+        Decoder decoder = new Decoder();
+        String decoded = decoder.decode();
+        return "string: "+decoded;
     }
 
-    public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+    public static void main(String[] args) throws UnsupportedEncodingException, DataFormatException {
+        System.out.println(new App().decode());
     }
 }
