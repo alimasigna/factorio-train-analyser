@@ -5,8 +5,18 @@ import java.util.Base64;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+/**
+ * This class is used to generate a JSON String from a Factorio Blueprint.
+ */
 public class Decoder {
 
+    /**
+     * This will initialize the private Json field with a given Json String.
+     * 
+     * @param input The encoded factorio blueprint String that will be decoded into
+     *              a readable JSON String.
+     * @return The generated Json String if the decoding was successful. If not, it will return null.
+     * */
     public String decode(String input) throws UnsupportedEncodingException, DataFormatException {
 
         if (input != null) {
