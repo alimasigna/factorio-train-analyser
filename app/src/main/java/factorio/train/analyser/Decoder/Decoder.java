@@ -17,9 +17,9 @@ public class Decoder {
      *              a readable JSON String.
      * @return The generated Json String if the decoding was successful. If not, it will return null.
      * */
-    public String decode(String input) throws UnsupportedEncodingException, DataFormatException {
+    public String decode(String input) {
 
-        if (input != null) {
+        try {
             byte[] decodedBytes = Base64.getDecoder().decode(input.substring(1));
 
             Inflater decompresser = new Inflater();
@@ -31,8 +31,7 @@ public class Decoder {
             String outputString = new String(result, 0, resultLength, "UTF-8");
 
             return outputString;
-
-        } else {
+        } catch (Exception e) {
             return null;
         }
     }
