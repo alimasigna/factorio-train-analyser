@@ -12,7 +12,8 @@ public class App {
     public String decode() {
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
-        return decodedString;
+        Matrix matrix = new Matrix(decodedString);
+        return (decodedString + "\n" + matrix.toString());
     }
 
     public static void main(String[] args) {

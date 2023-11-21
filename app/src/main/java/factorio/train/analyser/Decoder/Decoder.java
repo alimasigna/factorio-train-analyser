@@ -1,8 +1,6 @@
 package factorio.train.analyser.Decoder;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Base64;
-import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
@@ -24,7 +22,7 @@ public class Decoder {
 
             Inflater decompresser = new Inflater();
             decompresser.setInput(decodedBytes, 0, decodedBytes.length);
-            byte[] result = new byte[10000];
+            byte[] result = new byte[10000]; //TODO this number might be to small for big blueprints
             int resultLength = decompresser.inflate(result);
             decompresser.end();
 

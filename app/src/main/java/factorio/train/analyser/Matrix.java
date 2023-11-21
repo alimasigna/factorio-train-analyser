@@ -98,6 +98,30 @@ public class Matrix {
         }
     }
 
+    /** This method formats the matrix field into a String.
+     * @return The String representation of the matrix field.
+     * */
+    @Override
+    public String toString() {
+        String stringifiedMatrix = "";
+        if(matrix == null) return stringifiedMatrix;
+        for(int i = 0; i< matrix.length; i++){
+            for(int j = 0; j<matrix[i].length; j++){
+                if(matrix[i][j] == null) {
+                    stringifiedMatrix += " . ";
+                    continue;
+                }
+                if (matrix[i][j].size()>1) {
+                    stringifiedMatrix +=" + ";
+                    continue;
+                }
+                stringifiedMatrix +=" # ";
+            }
+            stringifiedMatrix += "\n";
+        }
+        return stringifiedMatrix;
+    }
+
     /** This method filters the entities field. The goal is to remove all non-train-related entities.
      * */
     private void filterEntities() {
