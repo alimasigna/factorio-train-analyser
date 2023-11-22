@@ -6,11 +6,8 @@ package factorio.train.analyser;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import java.io.UnsupportedEncodingException;
-import java.util.zip.DataFormatException;
-
 public class AppTest {
-    @Test public void appHasAGreeting() throws UnsupportedEncodingException, DataFormatException {
+    @Test public void appHasAGreeting() {
         App classUnderTest = new App();
         assertNotNull("app should have a greeting", classUnderTest.decode());
     }
