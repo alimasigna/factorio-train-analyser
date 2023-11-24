@@ -1,13 +1,13 @@
 # Term defintion
 ![Example](example.png)
 
-## Edge
-A edge is summation of multiple train tracks. The edge start and ends on a (chain)signal or if it ends. R1, R2, R3, R', R'', R''', R'''', R''''' are edges in the image above. R' to R''''' are special edges. They just end or start without a signal. In our deadlock analysis we assume that these special edges are always free.
+## Node
+A node is summation of multiple train tracks. The node start and ends on a (chain)signal or if it ends. R1, R2, R3, R', R'', R''', R'''', R''''' are nodes in the image above. R' to R''''' are special nodes. They just end or start without a signal. In our deadlock analysis we assume that these special nodes are always free.
 
 ## Section
-A section consists out of multiple edges. A section is definied by (chain)signals.  \
+A section consists out of multiple nodes. A section is definied by (chain)signals.  \
 In our example there is a section S1 = {R1, R2, R3} and a section S' = {R', R'', R''', R'''', R'''''}. In our deadlock analysis we use this to know where we dont have to simulate trains. If there is a train in R1, we know that there cannot be a train in R2 and R3. \
-S' is again a special section that consists out of edges that are always free (R', ...). We assume that S' is always free because it consists out of edges that are always free.
+S' is again a special section that consists out of nodes that are always free (R', ...). We assume that S' is always free because it consists out of nodes that are always free.
 
 ## Directions
 For our analysis we generate a graph that emulates the possible movement directions of the given blueprint. This is the graph for our example: \
@@ -31,7 +31,7 @@ So if our trains wants to drive into R1, R'''' also has to be free. This is triv
 
 ## Deadlock Example
 ![A deadlock crossing](deadlock.png)
-### Edges
+### Nodes
 R1, R2, R3, R4, R5, R6, R7, R8, R', R'', R''', R'''', ...
 ### Section
 S' = {R', R'', R''', ...} \
@@ -47,7 +47,7 @@ there are no chain signals -> no dependencies
 ### Example
 Trains can be compared to processes or threads. A process uses certain resources and requests resources. A train is in a section and he wants to drive to another section. Our goal is to create a resource graph of what resource a train has and which resource a trains wants.
 #### To start we define 4 trains
-T0 = R3 -> R1 //T0 is in edge R3 and wants to drive into edge R1 \
+T0 = R3 -> R1 //T0 is in node R3 and wants to drive into node R1 \
 T1 = R2 -> R8 \
 T2 = R7 -> R5 \
 T3 = R6 -> R4 \
