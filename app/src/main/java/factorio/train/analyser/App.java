@@ -7,13 +7,14 @@ import factorio.train.analyser.Decoder.Decoder;
 
 public class App {
 
-    private static String blueprint = "0eNqV19tugkAQBuB3mWtInF1gWV6laRoPG7uJogE0NYZ37yLGtOk0/HPpgc+Bmd+BO20Ol3DuYjtQc6e4PbU9NW936uO+XR+m94bbOVBDcQhHyqhdH6dX3ToeaMwotrvwRQ2P7xmFdohDDPPxjxe3j/Zy3IQufeF15PbSXcMufwAZnU99OubUTj+UHJPRjZqcTaJ3sQvb+bNqzP6IBhN5JZNWIO2L7Iek7T+Hf9CcZ9T/Np1gFqjJVjRZMEvs1PNiFqtlsYKrLMUqS8F0WtMt11nDphNNqU6vNcvlOqepA1EvolKhzFrUApWCOTJzNFejZODBebaaRaZQMrJSKhUrKpVSKUXFqS5uDcxArazLiXV5peIlxay0/RIbZsDdMLVkQorfV8lIpFEmJVW2uB2MdspZnCyDT/lzJXAJnDE+9cy4iqfA4yi8GHKHo9pcsBhY4/XMYm0WzwnecMvKmxUIxXODm3BsFCcPZ0jRJThB+FRaOD94fCx+X6Vokjo+4l6x6viIi6XQLhYjLpaCtUz6w07PMY8nnebHg1FG19D188WruXDeOFfb2tpqHL8Bv6NbtA==";
+    private static final String blueprint = "0eNqV19tugkAQBuB3mWtInF1gWV6laRoPG7uJogE0NYZ37yLGtOk0/HPpgc+Bmd+BO20Ol3DuYjtQc6e4PbU9NW936uO+XR+m94bbOVBDcQhHyqhdH6dX3ToeaMwotrvwRQ2P7xmFdohDDPPxjxe3j/Zy3IQufeF15PbSXcMufwAZnU99OubUTj+UHJPRjZqcTaJ3sQvb+bNqzP6IBhN5JZNWIO2L7Iek7T+Hf9CcZ9T/Np1gFqjJVjRZMEvs1PNiFqtlsYKrLMUqS8F0WtMt11nDphNNqU6vNcvlOqepA1EvolKhzFrUApWCOTJzNFejZODBebaaRaZQMrJSKhUrKpVSKUXFqS5uDcxArazLiXV5peIlxay0/RIbZsDdMLVkQorfV8lIpFEmJVW2uB2MdspZnCyDT/lzJXAJnDE+9cy4iqfA4yi8GHKHo9pcsBhY4/XMYm0WzwnecMvKmxUIxXODm3BsFCcPZ0jRJThB+FRaOD94fCx+X6Vokjo+4l6x6viIi6XQLhYjLpaCtUz6w07PMY8nnebHg1FG19D188WruXDeOFfb2tpqHL8Bv6NbtA==";
 
     public String decode() {
+        Matrix matrix = new Matrix(blueprint);
+
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
-        Matrix matrix = new Matrix(decodedString);
-        return (decodedString + "\n" + matrix.toString());
+        return (decodedString + "\n" + matrix);
     }
 
     public static void main(String[] args) {

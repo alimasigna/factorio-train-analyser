@@ -1,5 +1,6 @@
 package factorio.train.analyser;
 
+import factorio.train.analyser.Decoder.Decoder;
 import factorio.train.analyser.jsonmodels.Entity;
 import factorio.train.analyser.jsonmodels.Json;
 import factorio.train.analyser.jsonmodels.JsonBuilder;
@@ -23,20 +24,22 @@ public class Matrix {
     private ArrayList<Entity>[][] matrix;
 
     /** Creates a speicific matrix object with a given jsonString.
-     * @param jsonString The JsonString that will be used to generate a Json object.
+     * @param encodedJson The encoded JsonString that will be used to generate a Json object.
      * */
-    public Matrix(String jsonString){
-        setJson(jsonString);
+    public Matrix(String encodedJson){
+        setJson(encodedJson);
         setEntities();
         setMatrix();
     }
 
     /** This will initialize the private Json field with a given Json String.
-     * @param jsonString The JsonString that will be parsed into a Json object.
+     * @param encodedJson The encoded JsonString that will be parsed into a Json object.
      * */
-    private void setJson(String jsonString) {
+    private void setJson(String encodedJson) {
+        Decoder decoder = new Decoder();
+        String decodedJson = decoder.decode(encodedJson);
         JsonBuilder builder = new JsonBuilder();
-        json = builder.create(jsonString);
+        json = builder.create(decodedJson);
     }
 
     /** This setter will init the entities field and filter it.
@@ -103,23 +106,23 @@ public class Matrix {
      * */
     @Override
     public String toString() {
-        String stringifiedMatrix = "";
-        if(matrix == null) return stringifiedMatrix;
-        for(int i = 0; i< matrix.length; i++){
-            for(int j = 0; j<matrix[i].length; j++){
-                if(matrix[i][j] == null) {
-                    stringifiedMatrix += " . ";
+        StringBuilder stringifiedMatrix = new StringBuilder();
+        if(matrix == null) return stringifiedMatrix.toString();
+        for (ArrayList<Entity>[] arrayLists : matrix) {
+            for (ArrayList<Entity> arrayList : arrayLists) {
+                if (arrayList == null) {
+                    stringifiedMatrix.append(" . ");
                     continue;
                 }
-                if (matrix[i][j].size()>1) {
-                    stringifiedMatrix +=" + ";
+                if (arrayList.size() > 1) {
+                    stringifiedMatrix.append(" + ");
                     continue;
                 }
-                stringifiedMatrix +=" # ";
+                stringifiedMatrix.append(" # ");
             }
-            stringifiedMatrix += "\n";
+            stringifiedMatrix.append("\n");
         }
-        return stringifiedMatrix;
+        return stringifiedMatrix.toString();
     }
 
     /** This method filters the entities field. The goal is to remove all non-train-related entities.
