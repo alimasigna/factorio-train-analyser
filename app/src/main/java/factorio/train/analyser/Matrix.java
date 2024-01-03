@@ -95,6 +95,8 @@ public class Matrix {
             //normalyzing of koords
             int adjustedX = (int) (entity.getPosition().getX()*2 - lowX); //double size so that we can map .5 vals
             int adjustedY = (int) (entity.getPosition().getY()*2 - lowY);
+            entity.getPosition().setX(adjustedX);
+            entity.getPosition().setY(adjustedY);
             if(matrix[adjustedX][adjustedY] == null)
                 matrix[adjustedX][adjustedY] = new ArrayList<>();
             matrix[adjustedX][adjustedY].add(entity);
