@@ -18,4 +18,8 @@ public class Entity {
     public String getName() {
         return name;
     }
+
+    public int getDirection() {
+        return direction;
+    }
 }

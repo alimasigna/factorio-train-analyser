@@ -4,6 +4,7 @@
 package factorio.train.analyser;
 
 import factorio.train.analyser.Decoder.Decoder;
+import factorio.train.analyser.graph.Graph;
 
 public class App {
 
@@ -11,6 +12,7 @@ public class App {
 
     public String decode() {
         Matrix matrix = new Matrix(blueprint);
+        Graph graph = new Graph(blueprint);
 
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
