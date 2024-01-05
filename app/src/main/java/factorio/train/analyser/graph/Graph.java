@@ -170,6 +170,94 @@ public class Graph {
 
     // This method maps all the possible rails that can intersect to the given entity. please note they are NOT connected
     private LookUp[] lookUpIntersects(Entity entry) {
-        return null;
+        LookUp[] neighbours = {};
+        double xPos = entry.getPosition().getX();
+        double yPos = entry.getPosition().getY();
+        switch (entry.getName()) {
+            case "straight-rail" :
+                switch (entry.getDirection()) {
+                    case 0: // |
+                        neighbours = new LookUp[]{
+                                new LookUp(xPos + 4, yPos,2, "straight-rail"),
+                                new LookUp(xPos - 4, yPos,2, "straight-rail"),
+                                new LookUp(xPos - 4, yPos - 4,5, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4,4, "curved-rail"),
+                                new LookUp(xPos - 4, yPos + 4,2, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 4,7, "curved-rail"),
+                        };
+                        break;
+                    case 2: // -
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 5: // \
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 1: // \
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 3: // /
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 7: // /
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                }
+                break;
+            case "curved-rail" :
+                switch (entry.getDirection()) {
+                    case 0: // '|
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 1: // |'
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 2: // --'
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 3: // --,
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 4: // |,
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 5: // ,|
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 6: // ,--
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                    case 7: // '--
+                        neighbours = new LookUp[]{
+                                
+                        };
+                        break;
+                }
+                break;
+        }
+        return neighbours;
     }
 }
