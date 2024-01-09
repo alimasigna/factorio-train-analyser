@@ -376,7 +376,7 @@ public class Graph {
                     case 1: // \
                         neighbours = new LookUp[]{
                                 new LookUp(xPos, yPos,2, "straight-rail"),
-                                new LookUp(xPos, yPos - 4,2, "straight-rail"),
+                                new LookUp(xPos + 4, yPos,2, "straight-rail"),
                                 new LookUp(xPos, yPos,3, "straight-rail"),
                                 new LookUp(xPos + 4, yPos,7, "straight-rail"),
                                 new LookUp(xPos, yPos,0, "straight-rail"),
@@ -441,12 +441,134 @@ public class Graph {
                         break;
                     case 3: // /
                         neighbours = new LookUp[]{
-                                
+                                new LookUp(xPos, yPos,0, "straight-rail"),
+                                new LookUp(xPos, yPos + 2,0, "straight-rail"),
+                                new LookUp(xPos, yPos,1, "straight-rail"),
+                                new LookUp(xPos + 2, yPos,5, "straight-rail"),
+                                new LookUp(xPos, yPos,2, "straight-rail"),
+                                new LookUp(xPos + 2, yPos,2, "straight-rail"),
+                                new LookUp(xPos, yPos,5, "straight-rail"),
+                                new LookUp(xPos, yPos + 2,1, "straight-rail"),
+
+                                new LookUp(xPos + 2, yPos + 2,4, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 6,4, "curved-rail"),
+                                new LookUp(xPos + 6, yPos + 6,4, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,4, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,4, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,4, "curved-rail"),
+
+                                new LookUp(xPos + 2, yPos + 6,5, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 6,5, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,5, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,5, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 2,5, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,5, "curved-rail"),
+
+                                new LookUp(xPos + 6, yPos + 6,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 6,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,0, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 6,0, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,0, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos + 2,1, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,1, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,1, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 6,1, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 6,1, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 6,1, "curved-rail"),
+
+                                new LookUp(xPos + 2, yPos - 2,6, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 2,6, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,6, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,6, "curved-rail"),
+                                new LookUp(xPos - 6, yPos + 2,6, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos + 6,2, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,2, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,2, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,2, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 2,2, "curved-rail"),
+                                new LookUp(xPos + 10, yPos - 2,2, "curved-rail"),
+
+                                new LookUp(xPos + 10, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos + 6, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,3, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 2,3, "curved-rail"),
+
+                                new LookUp(xPos - 6, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,7, "curved-rail"),
+                                new LookUp(xPos + 6, yPos + 2,7, "curved-rail"),
+                                new LookUp(xPos + 6, yPos + 6,7, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,7, "curved-rail"),
                         };
                         break;
                     case 7: // /
                         neighbours = new LookUp[]{
-                                
+                                new LookUp(xPos, yPos,0, "straight-rail"),
+                                new LookUp(xPos, yPos - 4,0, "straight-rail"),
+                                new LookUp(xPos, yPos,5, "straight-rail"),
+                                new LookUp(xPos - 4, yPos,1, "straight-rail"),
+                                new LookUp(xPos, yPos,2, "straight-rail"),
+                                new LookUp(xPos - 4, yPos,2, "straight-rail"),
+                                new LookUp(xPos, yPos,1, "straight-rail"),
+                                new LookUp(xPos, yPos - 4,5, "straight-rail"),
+
+                                new LookUp(xPos - 2, yPos - 2,0, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,0, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 6,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 6,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,0, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,0, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos - 2,1, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 6,1, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,1, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,1, "curved-rail"),
+                                new LookUp(xPos - 6, yPos + 2,1, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,1, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos - 2,4, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,4, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 6,4, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 6,4, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 6,4, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,4, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos + 2,5, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,5, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,5, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 6,5, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 6,5, "curved-rail"),
+                                new LookUp(xPos - 6, yPos + 6,5, "curved-rail"),
+
+                                new LookUp(xPos - 2, yPos + 2,2, "curved-rail"),
+                                new LookUp(xPos - 6, yPos + 2,2, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,2, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,2, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 2,2, "curved-rail"),
+
+                                new LookUp(xPos + 2, yPos - 6,6, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,6, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,6, "curved-rail"),
+                                new LookUp(xPos - 2, yPos + 2,6, "curved-rail"),
+                                new LookUp(xPos - 6, yPos + 2,6, "curved-rail"),
+                                new LookUp(xPos - 10, yPos + 2,6, "curved-rail"),
+
+                                new LookUp(xPos - 10, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,7, "curved-rail"),
+                                new LookUp(xPos + 6, yPos + 2,7, "curved-rail"),
+
+                                new LookUp(xPos + 6, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,3, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 2,3, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 6,3, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,3, "curved-rail"),
                         };
                         break;
                 }
