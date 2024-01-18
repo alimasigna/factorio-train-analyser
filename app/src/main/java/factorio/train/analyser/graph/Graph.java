@@ -503,7 +503,7 @@ public class Graph {
                                 new LookUp(xPos + 2, yPos + 2,7, "curved-rail"),
                                 new LookUp(xPos + 6, yPos + 2,7, "curved-rail"),
                                 new LookUp(xPos + 6, yPos + 6,7, "curved-rail"),
-                                new LookUp(xPos - 2, yPos - 2,7, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 2,7, "curved-rail")
                         };
                         break;
                     case 7: // /
@@ -569,7 +569,7 @@ public class Graph {
                                 new LookUp(xPos - 2, yPos - 2,3, "curved-rail"),
                                 new LookUp(xPos - 6, yPos - 2,3, "curved-rail"),
                                 new LookUp(xPos - 6, yPos - 6,3, "curved-rail"),
-                                new LookUp(xPos + 2, yPos + 2,3, "curved-rail"),
+                                new LookUp(xPos + 2, yPos + 2,3, "curved-rail")
                         };
                         break;
                 }
@@ -685,6 +685,10 @@ public class Graph {
                                 new LookUp(xPos, yPos + 4,5, "curved-rail"),
                                 new LookUp(xPos, yPos + 8,5, "curved-rail"),
                                 new LookUp(xPos, yPos + 12,5, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4,5, "curved-rail"),
+                                new LookUp(xPos + 4, yPos, 5, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 4, 5, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 8, 5, "curved-rail"),
 
                                 new LookUp(xPos - 8, yPos - 4,7, "curved-rail"),
                                 new LookUp(xPos - 4, yPos - 4,7, "curved-rail"),
@@ -846,6 +850,10 @@ public class Graph {
                                 new LookUp(xPos, yPos + 4,4, "curved-rail"),
                                 new LookUp(xPos, yPos + 8,4, "curved-rail"),
                                 new LookUp(xPos, yPos + 12,4, "curved-rail"),
+                                new LookUp(xPos - 4, yPos - 4,4, "curved-rail"),
+                                new LookUp(xPos - 4, yPos, 4, "curved-rail"),
+                                new LookUp(xPos - 4, yPos + 4, 4, "curved-rail"),
+                                new LookUp(xPos - 4, yPos + 8, 4, "curved-rail"),
 
                                 new LookUp(xPos - 8, yPos + 4,2, "curved-rail"),
                                 new LookUp(xPos - 4, yPos + 4,2, "curved-rail"),
@@ -895,7 +903,7 @@ public class Graph {
                                 new LookUp(xPos - 4, yPos - 4,6, "curved-rail"),
                                 new LookUp(xPos, yPos - 4,6, "curved-rail"),
                                 new LookUp(xPos + 4, yPos - 4,6, "curved-rail"),
-                                new LookUp(xPos + 8, yPos - 4,6, "curved-rail"),
+                                new LookUp(xPos + 8, yPos - 4,6, "curved-rail")
                         };
                         break;
                     case 2: // --'
@@ -1060,8 +1068,7 @@ public class Graph {
                                 new LookUp(xPos + 4, yPos, 5, "curved-rail"),
                                 new LookUp(xPos + 4, yPos + 4, 5, "curved-rail"),
                                 new LookUp(xPos + 8, yPos - 8, 5, "curved-rail"),
-                                new LookUp(xPos + 8, yPos - 4, 5, "curved-rail"),
-
+                                new LookUp(xPos + 8, yPos - 4, 5, "curved-rail")
                         };
                         break;
                     case 3: // --,
@@ -1117,6 +1124,10 @@ public class Graph {
                                 new LookUp(xPos + 4, yPos,6, "curved-rail"),
                                 new LookUp(xPos + 8, yPos,6, "curved-rail"),
                                 new LookUp(xPos + 12, yPos,6, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4, 6, "curved-rail"),
+                                new LookUp(xPos, yPos - 4, 6, "curved-rail"),
+                                new LookUp(xPos - 4, yPos - 4, 6, "curved-rail"),
+                                new LookUp(xPos - 8, yPos - 4, 6, "curved-rail"),
 
                                 new LookUp(xPos - 4, yPos + 4,4, "curved-rail"),
                                 new LookUp(xPos - 4, yPos,4, "curved-rail"),
@@ -1213,7 +1224,7 @@ public class Graph {
                                 new LookUp(xPos + 4, yPos,7, "curved-rail"),
                                 new LookUp(xPos + 4, yPos + 4,7, "curved-rail"),
                                 new LookUp(xPos, yPos,7, "curved-rail"),
-                                new LookUp(xPos -12, yPos - 4,7, "curved-rail"),
+                                new LookUp(xPos -12, yPos - 4,7, "curved-rail")
                         };
                         break;
                     case 4: // |,
@@ -1378,8 +1389,7 @@ public class Graph {
                                 new LookUp(xPos + 4, yPos + 4, 0, "curved-rail"),
                                 new LookUp(xPos, yPos + 4, 0, "curved-rail"),
                                 new LookUp(xPos + 4, yPos + 8, 0, "curved-rail"),
-                                new LookUp(xPos + 8, yPos + 8, 0, "curved-rail"),
-
+                                new LookUp(xPos + 8, yPos + 8, 0, "curved-rail")
                         };
                         break;
                     case 5: // ,|
@@ -1485,6 +1495,10 @@ public class Graph {
                                 new LookUp(xPos - 4, yPos,0, "curved-rail"),
                                 new LookUp(xPos - 4, yPos + 4,0, "curved-rail"),
                                 new LookUp(xPos - 4, yPos + 8,0, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 4,0, "curved-rail"),
+                                new LookUp(xPos + 4, yPos, 0, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4, 0, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 8, 0, "curved-rail"),
 
                                 new LookUp(xPos - 4, yPos + 12,5, "curved-rail"),
                                 new LookUp(xPos, yPos + 8,5, "curved-rail"),
@@ -1540,7 +1554,7 @@ public class Graph {
                                 new LookUp(xPos, yPos - 8,1, "curved-rail"),
                                 new LookUp(xPos + 4, yPos - 8,1, "curved-rail"),
                                 new LookUp(xPos, yPos - 4,1, "curved-rail"),
-                                new LookUp(xPos + 4, yPos - 4,1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4,1, "curved-rail")
                         };
                         break;
                     case 6: // ,--
@@ -1830,6 +1844,10 @@ public class Graph {
                                 new LookUp(xPos - 4, yPos,2, "curved-rail"),
                                 new LookUp(xPos - 8, yPos,2, "curved-rail"),
                                 new LookUp(xPos - 12, yPos,2, "curved-rail"),
+                                new LookUp(xPos - 4, yPos + 4, 2, "curved-rail"),
+                                new LookUp(xPos, yPos + 4, 2, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 4, 2, "curved-rail"),
+                                new LookUp(xPos + 8, yPos + 4, 2, "curved-rail"),
 
                                 new LookUp(xPos - 12, yPos - 4,7, "curved-rail"),
                                 new LookUp(xPos - 8, yPos,7, "curved-rail"),
@@ -1866,7 +1884,7 @@ public class Graph {
                                 new LookUp(xPos + 4, yPos,3, "curved-rail"),
                                 new LookUp(xPos + 4, yPos + 4,3, "curved-rail"),
                                 new LookUp(xPos - 8, yPos - 4,3, "curved-rail"),
-                                new LookUp(xPos - 8, yPos - 8,3, "curved-rail"),
+                                new LookUp(xPos - 8, yPos - 8,3, "curved-rail")
                         };
                         break;
                 }
