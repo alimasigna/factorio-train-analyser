@@ -3,23 +3,23 @@ package factorio.train.analyser.graph;
 import factorio.train.analyser.jsonmodels.Entity;
 
 public class LookUp {
-    private double x;
-    private double y;
+    private int x;
+    private int y;
     private double direction;
     private String name;
 
-    public LookUp(double x, double y, int direction, String name) {
+    public LookUp(int x, int y, int direction, String name) {
         this.x = x;
         this.y = y;
         this.direction = direction;
         this.name = name;
     }
 
-    public double getX() {
+    public int getX() {
         return x;
     }
 
-    public double getY() {
+    public int getY() {
         return y;
     }
 
@@ -34,8 +34,8 @@ public class LookUp {
     // This method maps all the possible rails that can be CONNECTED to the given entity
     public static LookUp[] lookUpConnected(Entity entry) {
         LookUp[] neighbours = {};
-        double xPos = entry.getPosition().getX();
-        double yPos = entry.getPosition().getY();
+        int xPos = (int) entry.getPosition().getX();
+        int yPos = (int) entry.getPosition().getY();
         switch (entry.getName()) {
             case "straight-rail" :
                 switch (entry.getDirection()) {
@@ -184,8 +184,8 @@ public class LookUp {
     // This method maps all the possible rails that can cross to the given entity. please note they are NOT connected
     public static LookUp[] lookUpCrossed(Entity entry) {
         LookUp[] neighbours = {};
-        double xPos = entry.getPosition().getX();
-        double yPos = entry.getPosition().getY();
+        int xPos = (int) entry.getPosition().getX();
+        int yPos = (int) entry.getPosition().getY();
         switch (entry.getName()) {
             case "straight-rail" :
                 switch (entry.getDirection()) {
