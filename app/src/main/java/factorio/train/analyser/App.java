@@ -3,8 +3,14 @@
  */
 package factorio.train.analyser;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 import factorio.train.analyser.Decoder.Decoder;
 import factorio.train.analyser.graph.Graph;
+import factorio.train.analyser.graph.Node;
+import factorio.train.analyser.graph.Section;
 
 public class App {
 
@@ -20,6 +26,103 @@ public class App {
     }
 
     public static void main(String[] args) {
-        System.out.println(new App().decode());
+        System.out.println(new App().DeadlockDetection(GetStaticGraph()));
+    }
+
+    private Map<String, ArrayList<Section>> DeadlockDetection(ArrayList<Section> sections){
+
+        Map<String, ArrayList<Section>> result = new HashMap<String, ArrayList<Section>>();
+        for (Section section : sections) {
+            
+            if(section.getIsEnd()){
+
+                ArrayList<Node> endNodes = section.getAllNodes();
+                for (Node endnode : endNodes) {
+                    ArrayList<Section> path = new ArrayList<Section>();
+                    result.put(endnode.name, recursion(endnode, path));
+                }
+            }
+        }
+        return result;
+    }
+
+    private ArrayList<Section> recursion(Node node, ArrayList<Section> pathYet){
+
+        Section nodeSection = node.section;
+
+        for (Node nodeInSection : nodeSection.getAllNodes()) {
+
+            nodeSection.setIsFree(false);
+            pathYet.add(nodeSection);
+            ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
+
+            for (Node nextNode : nextNodes) {
+                
+                if(nextNode.section.getIsEnd()){
+                    nodeSection.setIsFree(true);
+                    pathYet.remove(nodeSection);
+                    continue;
+                }else if(!nextNode.section.getIsFree()){
+                    return pathYet;
+                }
+                else{
+                    return recursion(nextNode, pathYet);
+                }
+            }
+        }
+    }
+
+    private static ArrayList<Section> GetStaticGraph(){
+
+        Section yellow1 = new Section(false, "yellow1");
+        Section yellow2 = new Section(false, "yellow2");
+        Section purple1 = new Section(false, "purple1");
+        Section purple2 = new Section(false, "purple2");
+        Section end = new Section(true, "end");
+
+        Node R1 = new Node(yellow1, "r1");
+        Node R2 = new Node(yellow1, "r2");
+        Node R3 = new Node(purple1, "r3");
+        Node R4 = new Node(purple1, "r4");
+        Node R5 = new Node(yellow2, "r5");
+        Node R6 = new Node(yellow2, "r6");
+        Node R7 = new Node(purple2, "r7");
+        Node R8 = new Node(purple2, "r8");
+
+        Node R_1 = new Node(end, "r_1");
+        Node R_2 = new Node(end, "r_2");
+        Node R_3 = new Node(end, "r_3");
+        Node R_4 = new Node(end, "r_4");
+        Node R_5 = new Node(end, "r_5");
+        Node R_6 = new Node(end, "r_6");
+        Node R_7 = new Node(end, "r_7");
+        Node R_8 = new Node(end, "r_8");
+
+        R1.addNodeToList(R3);
+        R2.addNodeToList(R_2);
+        R3.addNodeToList(R_4);
+        R4.addNodeToList(R6);
+        R5.addNodeToList(R7);
+        R6.addNodeToList(R_6);
+        R7.addNodeToList(R_8);
+        R8.addNodeToList(R2);
+
+        R_1.addNodeToList(R1);
+        R_2.addNodeToList(R2);
+        R_3.addNodeToList(R4);
+        R_4.addNodeToList(R3);
+        R_5.addNodeToList(R5);
+        R_6.addNodeToList(R6);
+        R_7.addNodeToList(R8);
+        R_8.addNodeToList(R7);
+
+        ArrayList<Section> graph = new ArrayList<Section>();
+        graph.add(yellow1);
+        graph.add(yellow2);
+        graph.add(purple1);
+        graph.add(purple2);
+        graph.add(end);
+
+        return graph;
     }
 }
