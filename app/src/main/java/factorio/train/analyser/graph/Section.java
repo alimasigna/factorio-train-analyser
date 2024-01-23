@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Section {
     private boolean isFree;
     private boolean isEnd;
-    private ArrayList<Node> allNodes;
+    private ArrayList<Node> allNodes = new ArrayList<Node>();
     public String sectionName;
 
     public Section(boolean isEndNew, String name){

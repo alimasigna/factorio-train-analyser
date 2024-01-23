@@ -26,8 +26,18 @@ public class App {
     }
 
     public static void main(String[] args) {
-        System.out.println(new App().DeadlockDetection(GetStaticGraph()));
+        Map<String, ArrayList<Section>> result = new App().DeadlockDetection(GetStaticGraph());
+        for(String key : result.keySet()) {
+            String path = "";
+            ArrayList<Section> sections = new ArrayList<>();
+            sections = result.get(key);
+            for(Section section : sections){
+                path += section.sectionName;
+            }
+            System.out.println("starting in "+key + " has an deadlock in " + path);           
+        }
     }
+    
 
     private Map<String, ArrayList<Section>> DeadlockDetection(ArrayList<Section> sections){
 
@@ -40,6 +50,9 @@ public class App {
                 for (Node endnode : endNodes) {
                     ArrayList<Section> path = new ArrayList<Section>();
                     result.put(endnode.name, recursion(endnode, path));
+                    for (Section sectionFree : sections) {
+                        sectionFree.setIsFree(true);
+                    }
                 }
             }
         }
@@ -63,6 +76,7 @@ public class App {
                     pathYet.remove(nodeSection);
                     continue;
                 }else if(!nextNode.section.getIsFree()){
+
                     return pathYet;
                 }
                 else{
@@ -70,6 +84,7 @@ public class App {
                 }
             }
         }
+        return pathYet;
     }
 
     private static ArrayList<Section> GetStaticGraph(){
@@ -78,7 +93,14 @@ public class App {
         Section yellow2 = new Section(false, "yellow2");
         Section purple1 = new Section(false, "purple1");
         Section purple2 = new Section(false, "purple2");
-        Section end = new Section(true, "end");
+        Section end1 = new Section(true, "end1");
+        Section end2 = new Section(true, "end2");
+        Section end3 = new Section(true, "end3");
+        Section end4 = new Section(true, "end4");
+        Section end5 = new Section(true, "end5");
+        Section end6 = new Section(true, "end6");
+        Section end7 = new Section(true, "end7");
+        Section end8 = new Section(true, "end8");
 
         Node R1 = new Node(yellow1, "r1");
         Node R2 = new Node(yellow1, "r2");
@@ -89,14 +111,14 @@ public class App {
         Node R7 = new Node(purple2, "r7");
         Node R8 = new Node(purple2, "r8");
 
-        Node R_1 = new Node(end, "r_1");
-        Node R_2 = new Node(end, "r_2");
-        Node R_3 = new Node(end, "r_3");
-        Node R_4 = new Node(end, "r_4");
-        Node R_5 = new Node(end, "r_5");
-        Node R_6 = new Node(end, "r_6");
-        Node R_7 = new Node(end, "r_7");
-        Node R_8 = new Node(end, "r_8");
+        Node R_1 = new Node(end1, "r_1");
+        Node R_2 = new Node(end2, "r_2");
+        Node R_3 = new Node(end3, "r_3");
+        Node R_4 = new Node(end4, "r_4");
+        Node R_5 = new Node(end5, "r_5");
+        Node R_6 = new Node(end6, "r_6");
+        Node R_7 = new Node(end7, "r_7");
+        Node R_8 = new Node(end8, "r_8");
 
         R1.addNodeToList(R3);
         R2.addNodeToList(R_2);
@@ -121,7 +143,14 @@ public class App {
         graph.add(yellow2);
         graph.add(purple1);
         graph.add(purple2);
-        graph.add(end);
+        graph.add(end1);
+        graph.add(end2);
+        graph.add(end3);
+        graph.add(end4);
+        graph.add(end5);
+        graph.add(end6);
+        graph.add(end7);
+        graph.add(end8);
 
         return graph;
     }
