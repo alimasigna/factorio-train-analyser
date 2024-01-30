@@ -21,24 +21,60 @@ public class Graph {
     private void setNodes() { //TODO this method is a wip.
         if(matrix == null) return;
 
+        ArrayList<Entity> knownEntries = new ArrayList<>();
+
+
 
         ArrayList<Entity>[][] entries = matrix.getMatrix();
-        ArrayList<ArrayList<Track>> Nodes;
+        ArrayList<Node> Nodes = new ArrayList<>();
         for( int x = 0; x < entries.length; x++) {
             for( int y = 0; y < entries[x].length; y++) {
                 if(entries[x][y] == null) continue;
                 for( int i = 0; i < entries[x][y].size(); i++) {
-                    LookUp[] connections = filterLookups(entries[x][y].get(i).getConnected(), entries);
-                    LookUp[] crossings = filterLookups(entries[x][y].get(i).getCrossed(), entries);
-                    System.out.println("DEBUG");
+                    Entity entry = entries[x][y].get(i);
+                    if(knownEntries.contains(entry) || !( entry.getName().equals("straight-rail") || entry.getName().equals("curved-rail") )) continue; //we only use rails skip everything
+                    recTest(Nodes, entry, null, knownEntries, entries);
                 }
             }
         }
     }
 
+    private void recTest(ArrayList<Node> Nodes, Entity entry, Node currentNode, ArrayList<Entity> knownEntries, ArrayList<Entity>[][] entries){
+        if(knownEntries.contains(entry)) return; //if we already visited this track we can skip it
+        knownEntries.add(entry);
+        Track track;
+        if(currentNode == null) {   // we currently have no node selected
+            currentNode = new Node();
+        }
+        track = new Track(currentNode, entry.getName().equals("straight-rail") ? 1 : 3, entry.getDirection(), (int) entry.getPosition().getX(), (int) entry.getPosition().getY());
+        currentNode.addTrack(track);
+        if(!Nodes.contains(currentNode)) Nodes.add(currentNode);
+
+        Entity[] connections = filterLookups(entry.getConnected(), entries);
+
+        Node clone = currentNode.cloneNode(); // we always clone the current node incase there might be multiple new connections
+        int counter = 0;
+        for(Entity connection : connections) {
+            if(knownEntries.contains(connection)) {
+                //TODO add nodes to the current track, if we are on an end it should stop
+                continue;
+            }
+            if(counter > 0) { //if we have more connection we gotta make new nodes
+                recTest(Nodes, connection, clone, knownEntries, entries);
+            } else {
+                recTest(Nodes, connection, currentNode, knownEntries, entries);
+            }
+
+            counter++;
+        }
+        System.out.println("WE LEFT REC");
+        Entity[] crossings = filterLookups(entry.getCrossed(), entries);
+
+    }
+
     //removes all LookUps to empty or non-existent coordinates
-    private static LookUp[] filterLookups(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
-        ArrayList<LookUp> validLookUps = new ArrayList<>();
+    private static Entity[] filterLookups(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
+        ArrayList<Entity> validLookUps = new ArrayList<>();
         int x, y;
         int maxX = entries.length;
         int maxY = entries[0].length;
@@ -51,11 +87,11 @@ public class Graph {
                 for( int i = 0; i < entries[x][y].size(); i++) { //if all is true, iterate through the entities on x and y
                     if( entries[x][y].get(i).getDirection() == lookUp.getDirection()
                     && entries[x][y].get(i).getName().equals(lookUp.getName())) { //for a match we need same direction and name
-                        validLookUps.add(lookUp);
+                        validLookUps.add(entries[x][y].get(i));
                     }
                 }
             }
         }
-        return validLookUps.toArray(new LookUp[0]);
+        return validLookUps.toArray(new Entity[0]);
     }
 }

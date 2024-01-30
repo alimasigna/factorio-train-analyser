@@ -1904,4 +1904,8 @@ public class LookUp {
         }
         return neighbours;
     }
+
+    public static LookUp[] lookUpSignal(Entity entry) {
+        return null;
+    }
 }
