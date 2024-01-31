@@ -33,6 +33,9 @@ public class LookUp {
 
     // This method maps all the possible rails that can be CONNECTED to the given entity
     //it also filters which connection cant be connected to each other
+    public static LookUp[][] lookUpConnected(Track track) {
+        return lookUpConnected(new Entity(-1, track.getName(), track.getPosition(), track.getDirection()));
+    }
     public static LookUp[][] lookUpConnected(Entity entry) {
         LookUp[] entrance = {};
         LookUp[] exit = {};
@@ -217,6 +220,7 @@ public class LookUp {
     }
 
     // This method maps all the possible rails that can cross to the given entity. please note they are NOT connected
+    public static LookUp[] lookUpCrossed(Track entry) { return lookUpCrossed(new Entity(-1, entry.getName(), entry.getPosition(), entry.getDirection())); }
     public static LookUp[] lookUpCrossed(Entity entry) {
         LookUp[] neighbours = {};
         int xPos = (int) entry.getPosition().getX();

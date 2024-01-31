@@ -1,6 +1,7 @@
 package factorio.train.analyser;
 
 import factorio.train.analyser.Decoder.Decoder;
+import factorio.train.analyser.graph.Track;
 import factorio.train.analyser.jsonmodels.Entity;
 import factorio.train.analyser.jsonmodels.Json;
 import factorio.train.analyser.jsonmodels.JsonBuilder;
@@ -103,6 +104,26 @@ public class Matrix {
         }
     }
 
+    //this method converts entities to tracks
+    public ArrayList<Track>[][] convertToTracks() {
+        ArrayList<Track>[][] trackMatrix = new ArrayList[matrix.length][matrix[0].length]; //this assumes 0 is not null
+        for( int x = 0; x < matrix.length; x++) {
+            for( int y = 0; y < matrix[x].length; y++) {
+                if(matrix[x][y] == null) continue;
+                for( int i = 0; i < matrix[x][y].size(); i++) {
+                    Entity entry = matrix[x][y].get(i);
+                    if(entry.getName().equals("straight-rail") || entry.getName().equals("curved-rail") ) //we only use rails skip everything
+                        trackMatrix[x][y] = new ArrayList<>();
+                        trackMatrix[x][y].add(
+                                new Track(null,
+                                    entry
+                                )
+                    );
+                }
+            }
+        }
+        return trackMatrix;
+    }
     /** This method formats the matrix field into a String.
      * @return The String representation of the matrix field.
      * */

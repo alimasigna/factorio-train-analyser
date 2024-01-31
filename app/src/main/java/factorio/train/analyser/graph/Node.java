@@ -35,7 +35,11 @@ public class Node {
     }
 
     public void addTrack (Track track) {
-        tracks.add(track);
+        this.tracks.add(track);
+    }
+
+    public ArrayList<Track> getTracks() {
+        return tracks;
     }
 
     public Node cloneNode(){

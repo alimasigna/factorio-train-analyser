@@ -26,7 +26,7 @@ public class Entity {
         return direction;
     }
 
-    public LookUp[] getConnected() {
+    public LookUp[][] getConnected() {
         return LookUp.lookUpConnected(this);
     }
 
