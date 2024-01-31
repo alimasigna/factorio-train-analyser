@@ -32,71 +32,86 @@ public class LookUp {
     }
 
     // This method maps all the possible rails that can be CONNECTED to the given entity
-    public static LookUp[] lookUpConnected(Entity entry) {
-        LookUp[] neighbours = {};
+    //it also filters which connection cant be connected to each other
+    public static LookUp[][] lookUpConnected(Entity entry) {
+        LookUp[] entrance = {};
+        LookUp[] exit = {};
         int xPos = (int) entry.getPosition().getX();
         int yPos = (int) entry.getPosition().getY();
         switch (entry.getName()) {
             case "straight-rail" :
                 switch (entry.getDirection()) {
                     case 0: // |
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos, yPos + 4,0, "straight-rail"),
-                                new LookUp(xPos, yPos - 4,0, "straight-rail"),
-                                new LookUp(xPos - 2, yPos - 10,0, "curved-rail"),
-                                new LookUp(xPos + 2, yPos - 10,1, "curved-rail"),
                                 new LookUp(xPos - 2, yPos + 10,5, "curved-rail"),
                                 new LookUp(xPos + 2, yPos + 10,4, "curved-rail")
                         };
+                        exit = new LookUp[]{
+                                new LookUp(xPos, yPos - 4,0, "straight-rail"),
+                                new LookUp(xPos - 2, yPos - 10,0, "curved-rail"),
+                                new LookUp(xPos + 2, yPos - 10,1, "curved-rail")
+                        };
                         break;
                     case 2: // -
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos + 4, yPos,2, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 4, yPos,2, "straight-rail"),
-                                new LookUp(xPos + 10, yPos - 2,2, "curved-rail"),
-                                new LookUp(xPos + 10, yPos + 2,3, "curved-rail"),
                                 new LookUp(xPos - 10, yPos - 2,7, "curved-rail"),
                                 new LookUp(xPos - 10, yPos + 2,6, "curved-rail")
                         };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 4, yPos,2, "straight-rail"),
+                                new LookUp(xPos + 10, yPos - 2,2, "curved-rail"),
+                                new LookUp(xPos + 10, yPos + 2,3, "curved-rail")
+                        };
                         break;
                     case 5: // \
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos, yPos + 4,1, "straight-rail"),
-                                new LookUp(xPos - 4, yPos,1, "straight-rail"),
-                                new LookUp(xPos - 6, yPos - 6,4, "curved-rail"),
                                 new LookUp(xPos + 6, yPos + 6,7, "curved-rail"),
                                 new LookUp(xPos + 2, yPos + 6,0, "curved-rail"),
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos - 4, yPos,1, "straight-rail"),
                                 new LookUp(xPos - 6, yPos - 2,3, "curved-rail"),
+                                new LookUp(xPos - 6, yPos - 6,4, "curved-rail"),
                         };
                         break;
                     case 1: // \
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos, yPos - 4,5, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos + 4, yPos,5, "straight-rail"),
-                                new LookUp(xPos - 2, yPos - 6,4, "curved-rail"),
                                 new LookUp(xPos + 6, yPos + 2,7, "curved-rail"),
                                 new LookUp(xPos + 6, yPos + 6,0, "curved-rail"),
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos, yPos - 4,5, "straight-rail"),
                                 new LookUp(xPos - 6, yPos - 6,3, "curved-rail"),
+                                new LookUp(xPos - 2, yPos - 6,4, "curved-rail"),
                         };
                         break;
                     case 3: // /
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos, yPos + 4,7, "straight-rail"),
-                                new LookUp(xPos + 4, yPos,7, "straight-rail"),
-                                new LookUp(xPos + 6, yPos - 6,5, "curved-rail"),
-                                new LookUp(xPos + 6, yPos - 2,6, "curved-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 6, yPos + 6,2, "curved-rail"),
                                 new LookUp(xPos - 2, yPos + 6,1, "curved-rail"),
+                                new LookUp(xPos, yPos + 4,7, "straight-rail"),
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 6, yPos - 6,5, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 2,6, "curved-rail"),
+                                new LookUp(xPos + 4, yPos,7, "straight-rail"),
                         };
                         break;
                     case 7: // /
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos, yPos - 4,3, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 4, yPos,3, "straight-rail"),
-                                new LookUp(xPos + 2, yPos - 6,5, "curved-rail"),
-                                new LookUp(xPos + 6, yPos - 6,6, "curved-rail"),
                                 new LookUp(xPos - 6, yPos + 2,2, "curved-rail"),
                                 new LookUp(xPos - 6, yPos + 6,1, "curved-rail"),
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos, yPos - 4,3, "straight-rail"),
+                                new LookUp(xPos + 2, yPos - 6,5, "curved-rail"),
+                                new LookUp(xPos + 6, yPos - 6,6, "curved-rail"),
+
                         };
                         break;
                 }
@@ -104,81 +119,101 @@ public class LookUp {
             case "curved-rail" :
                 switch (entry.getDirection()) {
                     case 0: // '|
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos + 2, yPos + 10,0, "straight-rail"),
+                                new LookUp(xPos + 4, yPos + 16,4, "curved-rail"),
+                                new LookUp(xPos, yPos + 16,5, "curved-rail")
+                        };
+                        exit = new LookUp[]{
                                 new LookUp(xPos - 6, yPos - 6,1, "straight-rail"),
-                                new LookUp(xPos, yPos + 16,5, "curved-rail"),
-                                new LookUp(xPos - 8, yPos - 12,4, "curved-rail"),
-                                new LookUp(xPos + 4, yPos + 16,4, "curved-rail")
+                                new LookUp(xPos - 8, yPos - 12,4, "curved-rail")
                         };
                         break;
                     case 1: // |'
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 2, yPos + 10,0, "straight-rail"),
-                                new LookUp(xPos + 6, yPos - 6,7, "straight-rail"),
-                                new LookUp(xPos, yPos + 16, 4, "curved-rail"),
                                 new LookUp(xPos - 4, yPos + 16,5, "curved-rail"),
+                                new LookUp(xPos, yPos + 16, 4, "curved-rail")
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 6, yPos - 6,7, "straight-rail"),
                                 new LookUp(xPos + 8, yPos - 12,5, "curved-rail")
                         };
                         break;
                     case 2: // --'
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 10, yPos + 2,2, "straight-rail"),
-                                new LookUp(xPos + 6, yPos - 6,3, "straight-rail"),
+                                new LookUp(xPos - 16, yPos + 4,6, "curved-rail"),
                                 new LookUp(xPos - 16, yPos, 7, "curved-rail"),
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 6, yPos - 6,3, "straight-rail"),
                                 new LookUp(xPos + 12, yPos - 8,6, "curved-rail"),
-                                new LookUp(xPos - 16, yPos + 4,6, "curved-rail")
                         };
                         break;
                     case 3: // --,
-                        neighbours = new LookUp[]{
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 10, yPos - 2,2, "straight-rail"),
-                                new LookUp(xPos + 6, yPos + 6,1, "straight-rail"),
                                 new LookUp(xPos - 16, yPos, 6, "curved-rail"),
                                 new LookUp(xPos - 16, yPos - 4,7, "curved-rail"),
+
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 6, yPos + 6,1, "straight-rail"),
                                 new LookUp(xPos + 12, yPos + 8,7, "curved-rail")
+
                         };
                         break;
                     case 4: // |,
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos - 2, yPos - 10,0, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos + 6, yPos + 6,5, "straight-rail"),
-                                new LookUp(xPos, yPos - 16, 1, "curved-rail"),
-                                new LookUp(xPos - 4, yPos - 16,0, "curved-rail"),
                                 new LookUp(xPos + 8, yPos + 12,0, "curved-rail")
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos - 2, yPos - 10,0, "straight-rail"),
+                                new LookUp(xPos, yPos - 16, 1, "curved-rail"),
+                                new LookUp(xPos - 4, yPos - 16,0, "curved-rail")
                         };
                         break;
                     case 5: // ,|
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos + 2, yPos - 10,0, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 6, yPos + 6,3, "straight-rail"),
-                                new LookUp(xPos, yPos - 16, 0, "curved-rail"),
-                                new LookUp(xPos - 8, yPos + 12,1, "curved-rail"),
-                                new LookUp(xPos + 4, yPos - 16,1, "curved-rail")
+                                new LookUp(xPos - 8, yPos + 12,1, "curved-rail")
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 2, yPos - 10,0, "straight-rail"),
+                                new LookUp(xPos + 4, yPos - 16,1, "curved-rail"),
+                                new LookUp(xPos, yPos - 16, 0, "curved-rail")
                         };
                         break;
                     case 6: // ,--
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos + 10, yPos - 2,2, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 6, yPos + 6,7, "straight-rail"),
-                                new LookUp(xPos + 16, yPos, 3, "curved-rail"),
-                                new LookUp(xPos - 12, yPos + 8,2, "curved-rail"),
-                                new LookUp(xPos + 16, yPos - 4,2, "curved-rail")
+                                new LookUp(xPos - 12, yPos + 8,2, "curved-rail")
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 10, yPos - 2,2, "straight-rail"),
+                                new LookUp(xPos + 16, yPos - 4,2, "curved-rail"),
+                                new LookUp(xPos + 16, yPos, 3, "curved-rail")
                         };
                         break;
                     case 7: // '--
-                        neighbours = new LookUp[]{
-                                new LookUp(xPos + 10, yPos + 2,2, "straight-rail"),
+                        entrance = new LookUp[]{
                                 new LookUp(xPos - 6, yPos - 6,5, "straight-rail"),
-                                new LookUp(xPos + 16, yPos, 2, "curved-rail"),
-                                new LookUp(xPos - 12, yPos - 8,3, "curved-rail"),
-                                new LookUp(xPos + 16, yPos + 4,3, "curved-rail")
+                                new LookUp(xPos - 12, yPos - 8,3, "curved-rail")
+
+                        };
+                        exit = new LookUp[]{
+                                new LookUp(xPos + 10, yPos + 2,2, "straight-rail"),
+                                new LookUp(xPos + 16, yPos + 4,3, "curved-rail"),
+                                new LookUp(xPos + 16, yPos, 2, "curved-rail")
+
                         };
                         break;
                 }
                 break;
         }
-        return neighbours;
+        return new LookUp[][]{entrance, exit};
     }
 
     // This method maps all the possible rails that can cross to the given entity. please note they are NOT connected
