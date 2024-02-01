@@ -3,6 +3,7 @@ package factorio.train.analyser.graph;
 import factorio.train.analyser.Matrix;
 import factorio.train.analyser.jsonmodels.Entity;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Graph {
@@ -33,29 +34,42 @@ public class Graph {
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
-                    recLeftNode(track, tracks, knownTracks);
+                    recLeftNode(track, null, tracks, knownTracks);
                 }
             }
         }
         System.out.println("XDD");
     }
 
-    private void recLeftNode(Track currentTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+    private void recLeftNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
         knownTracks.add(currentTrack);
-        Track[] left = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
-        Track[] right = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
+        //we gotta split the recursion
+        ArrayList<Track> left = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
+        ArrayList<Track> right = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
+
+        //this is default if its null
+        ArrayList<Track> frontier = left;
+        ArrayList<Track> callBack = right;
+        //TODO refinde frontier callback
+        if(left.isEmpty() || previousTrack == null) {
+            frontier = left;
+            callBack = right;
+        } else if (right.isEmpty() || left.contains(previousTrack)) {
+            frontier = right;
+            callBack = left;
+        }
 
         ArrayList<Node> currentParentNodes = currentTrack.getNodes();
 
-        if(left.length == 0) { //basecase if there are no connected
+        if(frontier.size() == 0) { //basecase if there are no connected
             Node newParentNode = new Node();
             currentTrack.addParentNode(newParentNode);
             newParentNode.addTrack(currentTrack); //if we reache basecase we add node
         } else {
-            for(Track trackLeft : left) { //go thorugh all left tracks
+            for(Track trackLeft : frontier) { //go thorugh all frontier tracks
                 ArrayList<Node> parentNodesLeft = trackLeft.getNodes();
                 if(parentNodesLeft.size() == 0) { //if we have no parents recursivly call this method
-                    recLeftNode(trackLeft, tracks, knownTracks);
+                    recLeftNode(trackLeft, currentTrack, tracks, knownTracks);
                 } //we go down to basecas  there might be loops after we reach basecase we should have a parent
                 // allLeftParentNodes.addAll(parentNodesLeft); //we add all found nodes on the left
             }
@@ -67,20 +81,20 @@ public class Graph {
         for( int i = 0; i<givenNodes.size(); i++) {
             //we generate clones if we have more than 1 exit
             ArrayList <Node> clone = new ArrayList<>();
-            if(right.length>1) { // we only clone if we now that there are more than one exists
-                for(int k = 1; k<right.length; k++) { // if we have 2 endings we only need 1 clone etc
+            if(callBack.size()>1) { // we only clone if we now that there are more than one exists
+                for(int k = 1; k<callBack.size(); k++) { // if we have 2 endings we only need 1 clone etc
                     clone.add(givenNodes.get(i).cloneNode());
                 }
             }
 
-            for(int j = 0; j<right.length; j++) {
+            for(int j = 0; j<callBack.size(); j++) {
                 if(j==0){
                     connectTrackToNode(currentTrack, givenNodes.get(i));
-                    connectTrackToNode(right[j], givenNodes.get(i));
+                    connectTrackToNode(callBack.get(j), givenNodes.get(i));
                     continue;
                 }
                 connectTrackToNode(currentTrack, clone.get(j-1));
-                connectTrackToNode(right[j], clone.get(j-1));
+                connectTrackToNode(callBack.get(j), clone.get(j-1));
             }
         }
 
@@ -91,11 +105,11 @@ public class Graph {
             }
         }
 
-        if(right.length == 0) { //if we got all left nodes, we go for the right ones
+        if(callBack.size() == 0) { //if we got all left nodes, we go for the right ones
             return;
         } else {
-            for(int i = 0; i<right.length; i++) {
-                recLeftNode(right[i], tracks, knownTracks);
+            for(int i = 0; i<callBack.size(); i++) {
+                recLeftNode(callBack.get(i), currentTrack, /**TODO*/ tracks, knownTracks);
             }
         }
 
@@ -133,7 +147,7 @@ public class Graph {
         return validLookUps.toArray(new Entity[0]);
     }
 
-    private static Track[] filterLookupsToTrack(LookUp[] lookUps, ArrayList<Track>[][] tracks) {
+    private static ArrayList<Track> filterLookupsToTrack(LookUp[] lookUps, ArrayList<Track>[][] tracks) {
         ArrayList<Track> validLookUps = new ArrayList<>();
         int x, y;
         int maxX = tracks.length;
@@ -152,6 +166,6 @@ public class Graph {
                 }
             }
         }
-        return validLookUps.toArray(new Track[0]);
+        return validLookUps;
     }
 }
