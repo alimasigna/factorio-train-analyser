@@ -3,7 +3,6 @@ package factorio.train.analyser.graph;
 import factorio.train.analyser.Matrix;
 import factorio.train.analyser.jsonmodels.Entity;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Graph {
@@ -34,29 +33,44 @@ public class Graph {
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
-                    recLeftNode(track, null, tracks, knownTracks);
+                    recLeftNode(track, null, tracks, knownTracks, false);
                 }
             }
         }
         System.out.println("XDD");
     }
 
-    private void recLeftNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+    private void recLeftNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks, boolean calledFromForwardRec) {
         knownTracks.add(currentTrack);
         //we gotta split the recursion
-        ArrayList<Track> left = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
-        ArrayList<Track> right = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
+        ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
+        ArrayList<Track> out = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
 
         //this is default if its null
-        ArrayList<Track> frontier = left;
-        ArrayList<Track> callBack = right;
-        //TODO refinde frontier callback
-        if(left.isEmpty() || previousTrack == null) {
-            frontier = left;
-            callBack = right;
-        } else if (right.isEmpty() || left.contains(previousTrack)) {
-            frontier = right;
-            callBack = left;
+        ArrayList<Track> frontier = new ArrayList<>();
+        ArrayList<Track> callBack = new ArrayList<>();
+
+        if(previousTrack != null){  //check if we have been called from re
+            if(calledFromForwardRec) { //check if called from rightsided rec
+                if(in.contains(previousTrack)) { //frontier is where we come from
+                    frontier = in;
+                    callBack = out;
+                } else {
+                    frontier = out;
+                    callBack = in;
+                }
+            } else { //check if called from leftsided rec
+                if(in.contains(previousTrack)) {
+                    frontier = out;
+                    callBack = in;
+                } else {
+                    frontier = in;
+                    callBack = out;
+                }
+            }
+        } else {
+            frontier = in;
+            callBack = out;
         }
 
         ArrayList<Node> currentParentNodes = currentTrack.getNodes();
@@ -69,7 +83,7 @@ public class Graph {
             for(Track trackLeft : frontier) { //go thorugh all frontier tracks
                 ArrayList<Node> parentNodesLeft = trackLeft.getNodes();
                 if(parentNodesLeft.size() == 0) { //if we have no parents recursivly call this method
-                    recLeftNode(trackLeft, currentTrack, tracks, knownTracks);
+                    recLeftNode(trackLeft, currentTrack, tracks, knownTracks, false);
                 } //we go down to basecas  there might be loops after we reach basecase we should have a parent
                 // allLeftParentNodes.addAll(parentNodesLeft); //we add all found nodes on the left
             }
@@ -109,7 +123,7 @@ public class Graph {
             return;
         } else {
             for(int i = 0; i<callBack.size(); i++) {
-                recLeftNode(callBack.get(i), currentTrack, /**TODO*/ tracks, knownTracks);
+                recLeftNode(callBack.get(i), currentTrack, tracks, knownTracks, true);
             }
         }
 
