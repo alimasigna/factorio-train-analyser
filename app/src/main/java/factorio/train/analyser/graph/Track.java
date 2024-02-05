@@ -31,8 +31,12 @@ public class Track {
         this.name = entity.getName();
     }
 
-    public void addParentNode(Node node) {
+    public void addNode(Node node) {
         this.nodes.add(node);
+    }
+
+    public void removeNode(Node node) {
+        this.nodes.remove(node);
     }
 
     public LookUp[][] getConnected() {

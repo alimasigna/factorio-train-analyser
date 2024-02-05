@@ -38,6 +38,13 @@ public class Node {
         this.tracks.add(track);
     }
 
+    public void addTrack (ArrayList<Track> tracks) {
+        for(Track track : tracks) {
+            addTrack(track);
+            track.addNode(this);
+        }
+    }
+
     public ArrayList<Track> getTracks() {
         return tracks;
     }
@@ -48,9 +55,23 @@ public class Node {
         return newNode;
     }
 
+    public static Node mergeNodes(Node a, Node b) {
+        Node merged = new Node();
+        merged.addTrack(a.tracks);
+        merged.addTrack(b.tracks);
+        a.removeTracks();
+        b.removeTracks();
+        return merged;
+    }
+    private void removeTracks(){
+        for(Track track : tracks) {
+            track.removeNode(this);
+        }
+    }
+
     private void addClonedNodeToTrack(Node newParent){
         for ( Track track: this.tracks) {
-            track.addParentNode(newParent);
+            track.addNode(newParent);
         }
     }
 }

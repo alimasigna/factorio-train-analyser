@@ -33,14 +33,68 @@ public class Graph {
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
-                    recLeftNode(track, null, tracks, knownTracks, false);
+                    //recNode(track, null, tracks, knownTracks, false);
+                    betterRec(track,null, tracks, knownTracks);
                 }
             }
         }
         System.out.println("XDD");
     }
 
-    private void recLeftNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks, boolean calledFromForwardRec) {
+    private ArrayList<Node> betterRec(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+        knownTracks.add(currentTrack);
+        ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
+        ArrayList<Track> out = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
+
+        ArrayList<Track> frontier = new ArrayList<>();
+        ArrayList<Track> callBack = new ArrayList<>();
+
+        //set frontier and callback
+        if(previousTrack == null) {
+            frontier = in;
+            callBack = out;
+        } else if(in.contains(previousTrack)) {
+            callBack = in;
+            frontier = out;
+        } else if(out.contains(previousTrack)) {
+            callBack = out;
+            frontier = in;
+        }
+
+        ArrayList<Node> frontierNodes = new ArrayList<>();
+        ArrayList<Node> callbackNodes = new ArrayList<>();
+
+        for( Track frontTrack : frontier ){
+            frontierNodes.addAll(betterRec(frontTrack, currentTrack, tracks, knownTracks));
+        }
+
+        for ( Track callbackTrack : callBack ) {
+            if(callbackTrack == previousTrack) continue;
+            callbackNodes.addAll(betterRec(callbackTrack, currentTrack, tracks, knownTracks));
+        }
+
+        if(frontier.size() == 0) { //Basecase
+            Node base = new Node();
+            frontierNodes.add(base);
+        }
+
+        for( Node frontNode : frontierNodes ) { //add current track to incoming frontier nodes
+            frontNode.addTrack(currentTrack);
+            currentTrack.addNode(frontNode);
+        }
+
+        for( Node frontNode : frontierNodes ) {
+            for( Node callbackNode : callbackNodes ) {
+                Node temp = Node.mergeNodes(frontNode, callbackNode);
+                nodes.add(temp);
+                nodes.remove(callbackNode);
+            }
+        }
+
+        return frontierNodes; // gives back all possible connected nodes
+    }
+
+    private void recNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks, boolean calledFromForwardRec) {
         knownTracks.add(currentTrack);
         //we gotta split the recursion
         ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
@@ -68,7 +122,7 @@ public class Graph {
                     callBack = out;
                 }
             }
-        } else {
+        } else { //if
             frontier = in;
             callBack = out;
         }
@@ -77,15 +131,15 @@ public class Graph {
 
         if(frontier.size() == 0) { //basecase if there are no connected
             Node newParentNode = new Node();
-            currentTrack.addParentNode(newParentNode);
+            currentTrack.addNode(newParentNode);
             newParentNode.addTrack(currentTrack); //if we reache basecase we add node
         } else {
-            for(Track trackLeft : frontier) { //go thorugh all frontier tracks
-                ArrayList<Node> parentNodesLeft = trackLeft.getNodes();
-                if(parentNodesLeft.size() == 0) { //if we have no parents recursivly call this method
-                    recLeftNode(trackLeft, currentTrack, tracks, knownTracks, false);
+            for(Track frontTrack : frontier) { //go thorugh all frontier tracks
+                ArrayList<Node> frontNodes = frontTrack.getNodes();
+                if(frontNodes.size() == 0) { //if we have no parents recursivly call this method
+                    recNode(frontTrack, currentTrack, tracks, knownTracks, false);
                 } //we go down to basecas  there might be loops after we reach basecase we should have a parent
-                // allLeftParentNodes.addAll(parentNodesLeft); //we add all found nodes on the left
+                // allLeftParentNodes.addAll(frontNodes); //we add all found nodes on the left
             }
         }
 
@@ -123,7 +177,7 @@ public class Graph {
             return;
         } else {
             for(int i = 0; i<callBack.size(); i++) {
-                recLeftNode(callBack.get(i), currentTrack, tracks, knownTracks, true);
+                recNode(callBack.get(i), currentTrack, tracks, knownTracks, true);
             }
         }
 
@@ -134,7 +188,7 @@ public class Graph {
             node.addTrack(track);
         }
         if(!track.getNodes().contains(node)) {
-            track.addParentNode(node);
+            track.addNode(node);
         }
     }
 
