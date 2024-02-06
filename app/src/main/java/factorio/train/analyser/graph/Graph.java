@@ -34,7 +34,7 @@ public class Graph {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
                     //recNode(track, null, tracks, knownTracks, false);
-                    betterRec(track,null, tracks, knownTracks);
+                    nodes.addAll(betterRec(track,null, tracks, knownTracks));
                 }
             }
         }
@@ -92,104 +92,6 @@ public class Graph {
         }
 
         return frontierNodes; // gives back all possible connected nodes
-    }
-
-    private void recNode(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks, boolean calledFromForwardRec) {
-        knownTracks.add(currentTrack);
-        //we gotta split the recursion
-        ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
-        ArrayList<Track> out = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
-
-        //this is default if its null
-        ArrayList<Track> frontier = new ArrayList<>();
-        ArrayList<Track> callBack = new ArrayList<>();
-
-        if(previousTrack != null){  //check if we have been called from re
-            if(calledFromForwardRec) { //check if called from rightsided rec
-                if(in.contains(previousTrack)) { //frontier is where we come from
-                    frontier = in;
-                    callBack = out;
-                } else {
-                    frontier = out;
-                    callBack = in;
-                }
-            } else { //check if called from leftsided rec
-                if(in.contains(previousTrack)) {
-                    frontier = out;
-                    callBack = in;
-                } else {
-                    frontier = in;
-                    callBack = out;
-                }
-            }
-        } else { //if
-            frontier = in;
-            callBack = out;
-        }
-
-        ArrayList<Node> currentParentNodes = currentTrack.getNodes();
-
-        if(frontier.size() == 0) { //basecase if there are no connected
-            Node newParentNode = new Node();
-            currentTrack.addNode(newParentNode);
-            newParentNode.addTrack(currentTrack); //if we reache basecase we add node
-        } else {
-            for(Track frontTrack : frontier) { //go thorugh all frontier tracks
-                ArrayList<Node> frontNodes = frontTrack.getNodes();
-                if(frontNodes.size() == 0) { //if we have no parents recursivly call this method
-                    recNode(frontTrack, currentTrack, tracks, knownTracks, false);
-                } //we go down to basecas  there might be loops after we reach basecase we should have a parent
-                // allLeftParentNodes.addAll(frontNodes); //we add all found nodes on the left
-            }
-        }
-
-        //now we gotta add the nodes we have received to our right neighbours
-        ArrayList<Node> givenNodes = new ArrayList<>(); //we use giveNodes that have been previously given by rec
-        givenNodes.addAll(currentParentNodes);
-        for( int i = 0; i<givenNodes.size(); i++) {
-            //we generate clones if we have more than 1 exit
-            ArrayList <Node> clone = new ArrayList<>();
-            if(callBack.size()>1) { // we only clone if we now that there are more than one exists
-                for(int k = 1; k<callBack.size(); k++) { // if we have 2 endings we only need 1 clone etc
-                    clone.add(givenNodes.get(i).cloneNode());
-                }
-            }
-
-            for(int j = 0; j<callBack.size(); j++) {
-                if(j==0){
-                    connectTrackToNode(currentTrack, givenNodes.get(i));
-                    connectTrackToNode(callBack.get(j), givenNodes.get(i));
-                    continue;
-                }
-                connectTrackToNode(currentTrack, clone.get(j-1));
-                connectTrackToNode(callBack.get(j), clone.get(j-1));
-            }
-        }
-
-        //now we add the currentParentNodes to the overall Nodespool
-        for(Node parent : currentParentNodes) {
-            if(!nodes.contains(parent)) {
-                nodes.add(parent);
-            }
-        }
-
-        if(callBack.size() == 0) { //if we got all left nodes, we go for the right ones
-            return;
-        } else {
-            for(int i = 0; i<callBack.size(); i++) {
-                recNode(callBack.get(i), currentTrack, tracks, knownTracks, true);
-            }
-        }
-
-    }
-
-    private void connectTrackToNode(Track track, Node node) {
-        if(!node.getTracks().contains(track)) {
-            node.addTrack(track);
-        }
-        if(!track.getNodes().contains(node)) {
-            track.addNode(node);
-        }
     }
 
     //removes all LookUps to empty or non-existent coordinates

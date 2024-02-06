@@ -26,11 +26,4 @@ public class Entity {
         return direction;
     }
 
-    public LookUp[][] getConnected() {
-        return LookUp.lookUpConnected(this);
-    }
-
-    public LookUp[] getCrossed() {
-        return LookUp.lookUpCrossed(this);
-    }
 }

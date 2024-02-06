@@ -14,14 +14,6 @@ public class Track {
 
     private String name;
 
-    public Track (Node parent, int length, int direction, int xCoordinate, int yCoordinate) {
-        nodes = new ArrayList<>();
-        if (parent != null) this.nodes.add(parent);
-        this.length = length;
-        this.direction = direction;
-        this.position = new Position(xCoordinate, yCoordinate);
-    }
-
     public Track (Node parent, Entity entity) {
         nodes = new ArrayList<>();
         if (parent != null) this.nodes.add(parent);
@@ -58,7 +50,6 @@ public class Track {
     public int getDirection() {
         return direction;
     }
-
     public ArrayList<Node> getNodes() {
         return this.nodes;
     }
