@@ -34,7 +34,7 @@ public class Graph {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
                     //recNode(track, null, tracks, knownTracks, false);
-                    nodes.addAll(betterRec(track,null, tracks, knownTracks));
+                    betterRec(track,null, tracks, knownTracks);
                 }
             }
         }
@@ -84,11 +84,15 @@ public class Graph {
         }
 
         for( Node frontNode : frontierNodes ) {
-            for( Node callbackNode : callbackNodes ) {
-                Node temp = Node.mergeNodes(frontNode, callbackNode);
-                nodes.add(temp);
-                nodes.remove(callbackNode);
+            if(callBack.size()==0){ //if our callback is empty, we add the given frontierNodes
+                nodes.add(frontNode);
+                continue;
             }
+                for( Node callbackNode : callbackNodes ) {
+                    Node temp = Node.mergeNodes(frontNode, callbackNode);
+                    nodes.add(temp);
+                    nodes.remove(callbackNode);
+                }
         }
 
         return frontierNodes; // gives back all possible connected nodes
