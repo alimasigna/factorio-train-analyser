@@ -7,6 +7,8 @@ import java.util.ArrayList;
 
 public class Track {
     private ArrayList<Node> nodes;
+
+    private ArrayList<Node> frontierNodes;
     private int length;
     private int direction;
 
@@ -15,6 +17,7 @@ public class Track {
     private String name;
 
     public Track (Node parent, Entity entity) {
+        frontierNodes = new ArrayList<>();
         nodes = new ArrayList<>();
         if (parent != null) this.nodes.add(parent);
         this.length = entity.getName().equals("straight-rail") ? 1 : 3;
@@ -52,5 +55,9 @@ public class Track {
     }
     public ArrayList<Node> getNodes() {
         return this.nodes;
+    }
+
+    public ArrayList<Node> getFrontierNodes() {
+        return frontierNodes;
     }
 }

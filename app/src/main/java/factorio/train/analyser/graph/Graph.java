@@ -41,8 +41,19 @@ public class Graph {
         System.out.println("XDD");
     }
 
-    private ArrayList<Node> betterRec(Track currentTrack, Track previousTrack, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+    private ArrayList<Node> betterRec(Track currentTrack, ArrayList<Track> visitedTracks, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+        //store path callbyvalue
+        Track previousTrack;
+        ArrayList<Track> previousTracks = new ArrayList<>();
+        if(visitedTracks == null) {
+            previousTrack = null;
+        } else {
+            previousTracks.addAll(visitedTracks);
+            previousTrack = previousTracks.get(previousTracks.size()-1);
+        }
+        previousTracks.add(currentTrack);
         knownTracks.add(currentTrack);
+
         ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
         ArrayList<Track> out = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
 
@@ -65,12 +76,14 @@ public class Graph {
         ArrayList<Node> callbackNodes = new ArrayList<>();
 
         for( Track frontTrack : frontier ){
-            frontierNodes.addAll(betterRec(frontTrack, currentTrack, tracks, knownTracks));
-        }
-
-        for ( Track callbackTrack : callBack ) {
-            if(callbackTrack == previousTrack) continue;
-            callbackNodes.addAll(betterRec(callbackTrack, currentTrack, tracks, knownTracks));
+            if(previousTracks.contains(frontTrack)) {
+                continue;
+            }
+            if(!frontTrack.getFrontierNodes().isEmpty()) {
+                frontierNodes.addAll(frontTrack.getFrontierNodes());
+                continue;
+            }
+            frontierNodes.addAll(betterRec(frontTrack, previousTracks, tracks, knownTracks));
         }
 
         if(frontier.size() == 0) { //Basecase
@@ -81,7 +94,23 @@ public class Graph {
         for( Node frontNode : frontierNodes ) { //add current track to incoming frontier nodes
             frontNode.addTrack(currentTrack);
             currentTrack.addNode(frontNode);
+            currentTrack.getFrontierNodes().add(frontNode);
         }
+
+        for ( Track callbackTrack : callBack ) {
+            if(callbackTrack == previousTrack) continue;
+            //the followgin if statements are need possible loops inside a node
+            if(previousTracks.contains(callbackTrack)) {
+                continue;
+            }
+            if(!callbackTrack.getFrontierNodes().isEmpty()) {
+                callbackNodes.addAll(callbackTrack.getFrontierNodes());
+                continue;
+            }
+                callbackNodes.addAll(betterRec(callbackTrack, previousTracks, tracks, knownTracks));
+        }
+
+
 
         for( Node frontNode : frontierNodes ) {
             if(callBack.size()==0){ //if our callback is empty, we add the given frontierNodes

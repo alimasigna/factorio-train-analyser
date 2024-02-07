@@ -110,10 +110,10 @@ public class Matrix {
         for( int x = 0; x < matrix.length; x++) {
             for( int y = 0; y < matrix[x].length; y++) {
                 if(matrix[x][y] == null) continue;
+                trackMatrix[x][y] = new ArrayList<>();
                 for( int i = 0; i < matrix[x][y].size(); i++) {
                     Entity entry = matrix[x][y].get(i);
                     if(entry.getName().equals("straight-rail") || entry.getName().equals("curved-rail") ) //we only use rails skip everything
-                        trackMatrix[x][y] = new ArrayList<>();
                         trackMatrix[x][y].add(
                                 new Track(null,
                                     entry
