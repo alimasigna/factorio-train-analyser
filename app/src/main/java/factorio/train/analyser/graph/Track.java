@@ -38,6 +38,10 @@ public class Track {
         return LookUp.lookUpConnected(this);
     }
 
+    public LookUp[] getSignals() {
+        return LookUp.lookUpSignal(this);
+    }
+
     public LookUp[] getCrossed() {
         return LookUp.lookUpCrossed(this);
     }
@@ -59,5 +63,15 @@ public class Track {
 
     public ArrayList<Node> getFrontierNodes() {
         return frontierNodes;
+    }
+
+    public double getDistance(Track track) {
+        return getDistance(this.getPosition().getX(), this.getPosition().getY(), track.getPosition().getX(), track.getPosition().getY());
+    }
+    public double getDistance(Entity signal) {
+        return getDistance(this.getPosition().getX(), this.getPosition().getY(), signal.getPosition().getX(), signal.getPosition().getY());
+    }
+    private double getDistance(double x1, double y1, double x2, double y2) {
+        return Math.sqrt(Math.pow(x1-x2,2) + Math.pow(y1-y2,2));
     }
 }

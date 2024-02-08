@@ -33,15 +33,14 @@ public class Graph {
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
                     if (knownTracks.contains(track)) continue; //we only use tracks skip everything
-                    //recNode(track, null, tracks, knownTracks, false);
-                    betterRec(track,null, tracks, knownTracks);
+                    parseTracksToNodes(track,null, tracks, knownTracks);
                 }
             }
         }
         System.out.println("XDD");
     }
 
-    private ArrayList<Node> betterRec(Track currentTrack, ArrayList<Track> visitedTracks, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+    private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
         //store path callbyvalue
         Track previousTrack;
         ArrayList<Track> previousTracks = new ArrayList<>();
@@ -72,54 +71,69 @@ public class Graph {
             frontier = in;
         }
 
+        //checks if the frontier/callback is behind a signal
+        if(!isNextTrackInSection(currentTrack, frontier)) {
+            frontier = new ArrayList<>();
+        }
+        if(!isNextTrackInSection(currentTrack, callBack)) {
+            callBack = new ArrayList<>();
+        }
+
         ArrayList<Node> frontierNodes = new ArrayList<>();
         ArrayList<Node> callbackNodes = new ArrayList<>();
 
+        //frontier rec step
         for( Track frontTrack : frontier ){
             if(previousTracks.contains(frontTrack)) {
                 continue;
             }
+            //if the signal is closer than the track, we stop here
+            if(hasSignalAttached(frontTrack) && !isInsideCurrentSection(currentTrack, frontTrack)) {
+                continue;
+            } 
             if(!frontTrack.getFrontierNodes().isEmpty()) {
                 frontierNodes.addAll(frontTrack.getFrontierNodes());
                 continue;
             }
-            frontierNodes.addAll(betterRec(frontTrack, previousTracks, tracks, knownTracks));
+            frontierNodes.addAll(parseTracksToNodes(frontTrack, previousTracks, tracks, knownTracks));
         }
-
-        if(frontier.size() == 0) { //Basecase
+        if(frontier.size() == 0 || frontierNodes.size() == 0) { //Basecase
             Node base = new Node();
             frontierNodes.add(base);
         }
-
         for( Node frontNode : frontierNodes ) { //add current track to incoming frontier nodes
             frontNode.addTrack(currentTrack);
             currentTrack.addNode(frontNode);
             currentTrack.getFrontierNodes().add(frontNode);
         }
-
-        for ( Track callbackTrack : callBack ) {
+        //callback rec step
+        ArrayList<Track> temp = new ArrayList<>(callBack);
+        for ( Track callbackTrack : temp ) {
             if(callbackTrack == previousTrack) continue;
             //the followgin if statements are need possible loops inside a node
             if(previousTracks.contains(callbackTrack)) {
+                continue;
+            }
+            //if the signal is closer than the track, we stop here
+            if(hasSignalAttached(callbackTrack) && !isInsideCurrentSection(currentTrack, callbackTrack)) {
+                callBack.remove(callbackTrack);
                 continue;
             }
             if(!callbackTrack.getFrontierNodes().isEmpty()) {
                 callbackNodes.addAll(callbackTrack.getFrontierNodes());
                 continue;
             }
-                callbackNodes.addAll(betterRec(callbackTrack, previousTracks, tracks, knownTracks));
+                callbackNodes.addAll(parseTracksToNodes(callbackTrack, previousTracks, tracks, knownTracks));
         }
-
-
-
+        //merging of callback and frontier Nodes
         for( Node frontNode : frontierNodes ) {
             if(callBack.size()==0){ //if our callback is empty, we add the given frontierNodes
                 nodes.add(frontNode);
                 continue;
             }
                 for( Node callbackNode : callbackNodes ) {
-                    Node temp = Node.mergeNodes(frontNode, callbackNode);
-                    nodes.add(temp);
+                    Node base = Node.mergeNodes(frontNode, callbackNode);
+                    nodes.add(base);
                     nodes.remove(callbackNode);
                 }
         }
@@ -127,8 +141,47 @@ public class Graph {
         return frontierNodes; // gives back all possible connected nodes
     }
 
+    private boolean hasSignalAttached(Track track) {
+        ArrayList<Entity> signals = filterSignals(track.getSignals(), matrix.getMatrix());
+        return !signals.isEmpty();
+    }
+
+    private boolean isInsideCurrentSection(Track currentTrack, Track nextTrack){  
+        ArrayList<Entity> signals = filterSignals(nextTrack.getSignals(), matrix.getMatrix());
+        if(!signals.isEmpty()){
+            for(Entity signal : signals) {
+                if(currentTrack.getDistance(signal) < currentTrack.getDistance(nextTrack)) { //if the signal is closer than the track, we stop here
+                    return false;
+                } else if (currentTrack.getName().equals("straight-rail") 
+                            && nextTrack.getName().equals("straight-rail"))
+                            {
+                                if (currentTrack.getDirection() == 0 ||  currentTrack.getDirection() == 2
+                                && currentTrack.getDistance(signal) < 4.3)  {
+                                    return false;
+                                }
+                                if ( !(currentTrack.getDirection() == 0 ||  currentTrack.getDirection() == 2)) {
+                                    return false;
+                                }
+                            }
+            } 
+        }
+        return true;
+    }
+
+    private boolean isNextTrackInSection(Track currentTrack, ArrayList<Track> nextTracks) {
+        ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
+        if(!signals.isEmpty()){
+            for(Track nextTrack : nextTracks) {
+                if(!isInsideCurrentSection(nextTrack, currentTrack)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     //removes all LookUps to empty or non-existent coordinates
-    private static Entity[] filterLookups(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
+    private static ArrayList<Entity> filterSignals(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
         ArrayList<Entity> validLookUps = new ArrayList<>();
         int x, y;
         int maxX = entries.length;
@@ -147,7 +200,7 @@ public class Graph {
                 }
             }
         }
-        return validLookUps.toArray(new Entity[0]);
+        return validLookUps;
     }
 
     private static ArrayList<Track> filterLookupsToTrack(LookUp[] lookUps, ArrayList<Track>[][] tracks) {
