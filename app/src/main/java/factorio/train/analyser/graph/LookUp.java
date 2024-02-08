@@ -1936,6 +1936,185 @@ public class LookUp {
     }
 
     public static LookUp[] lookUpSignal(Entity entry) {
-        return null;
+        LookUp[] signals = {};
+        int xPos = (int) entry.getPosition().getX();
+        int yPos = (int) entry.getPosition().getY();
+        switch (entry.getName()) {
+            case "straight-rail" :
+                switch (entry.getDirection()) {
+                    case 0: // |
+                        signals = new LookUp[]{
+                                new LookUp(xPos - 3, yPos - 1, 0, "rail-signal"),
+                                new LookUp(xPos - 3, yPos + 1, 0, "rail-signal"),
+                                new LookUp(xPos + 3, yPos - 1, 4, "rail-signal"),
+                                new LookUp(xPos + 3, yPos + 1, 4, "rail-signal"),
+
+                                new LookUp(xPos - 3, yPos - 1, 0, "rail-chain-signal"),
+                                new LookUp(xPos - 3, yPos + 1, 0, "rail-chain-signal"),
+                                new LookUp(xPos + 3, yPos - 1, 4, "rail-chain-signal"),
+                                new LookUp(xPos + 3, yPos + 1, 4, "rail-chain-signal")
+                        };
+                        break;
+                    case 2: // -
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 1, yPos - 3, 2, "rail-signal"),
+                        new LookUp(xPos + 1, yPos - 3, 2, "rail-signal"),
+                        new LookUp(xPos - 1, yPos + 3, 6, "rail-signal"),
+                        new LookUp(xPos + 1, yPos + 3, 6, "rail-signal"),
+
+                        new LookUp(xPos - 1, yPos - 3, 2, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos - 3, 2, "rail-chain-signal"),
+                        new LookUp(xPos - 1, yPos + 3, 6, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos + 3, 6, "rail-chain-signal")
+                        };
+                        break;
+                    case 5: // \
+                    signals = new LookUp[]{
+                        new LookUp(xPos + 1, yPos - 1, 3, "rail-signal"),
+                        new LookUp(xPos - 3, yPos + 3, 7, "rail-signal"),
+
+                        new LookUp(xPos + 1, yPos - 1, 3, "rail-chain-signal"),
+                        new LookUp(xPos - 3, yPos + 3, 7, "rail-chain-signal")
+                    };
+                        break;
+                    case 1: // \
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 1, yPos + 1, 3, "rail-signal"),
+                        new LookUp(xPos + 3, yPos - 3, 7, "rail-signal"),
+
+                        new LookUp(xPos - 1, yPos + 1, 3, "rail-chain-signal"),
+                        new LookUp(xPos + 3, yPos - 3, 7, "rail-chain-signal")
+                    }; 
+                        break;
+                    case 3: // /
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 1, yPos - 1, 1, "rail-signal"),
+                        new LookUp(xPos + 3, yPos + 3, 5, "rail-signal"),
+
+                        new LookUp(xPos - 1, yPos - 1, 1, "rail-chain-signal"),
+                        new LookUp(xPos + 3, yPos + 3, 5, "rail-chain-signal") 
+                    };     
+                        break;
+                    case 7: // /
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 3, yPos - 3, 1, "rail-signal"),
+                        new LookUp(xPos + 1, yPos + 1, 5, "rail-signal"),
+
+                        new LookUp(xPos - 3, yPos - 3, 1, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos + 1, 5, "rail-chain-signal") 
+                    };  
+                        break;
+                }
+                break;
+            case "curved-rail" :
+                switch (entry.getDirection()) {
+                    case 0: // '|
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 1, yPos - 7, 3, "rail-signal"),
+                        new LookUp(xPos - 5, yPos - 3, 7, "rail-signal"),
+                        new LookUp(xPos - 1, yPos + 7, 0, "rail-signal"),
+                        new LookUp(xPos + 5, yPos + 7, 4, "rail-signal"),
+
+                        new LookUp(xPos - 1, yPos - 7, 3, "rail-chain-signal"),
+                        new LookUp(xPos - 5, yPos - 3, 7, "rail-chain-signal"),
+                        new LookUp(xPos - 1, yPos + 7, 0, "rail-chain-signal"),
+                        new LookUp(xPos + 5, yPos + 7, 4, "rail-chain-signal")
+                    };  
+                        break;
+                    case 1: // |'
+                    signals = new LookUp[]{
+                        new LookUp(xPos + 1, yPos - 7, 1, "rail-signal"),
+                        new LookUp(xPos + 5, yPos - 3, 5, "rail-signal"),
+                        new LookUp(xPos - 5, yPos + 7, 0, "rail-signal"),
+                        new LookUp(xPos + 1, yPos + 7, 4, "rail-signal"),
+
+                        new LookUp(xPos + 1, yPos - 7, 1, "rail-chain-signal"),
+                        new LookUp(xPos + 5, yPos - 3, 5, "rail-chain-signal"),
+                        new LookUp(xPos - 5, yPos + 7, 0, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos + 7, 4, "rail-chain-signal")
+                    };  
+                        break;
+                    case 2: // --'
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 7, yPos - 1, 2, "rail-signal"),
+                        new LookUp(xPos - 7, yPos + 5, 6, "rail-signal"),
+                        new LookUp(xPos + 3, yPos - 5, 1, "rail-signal"),
+                        new LookUp(xPos + 7, yPos - 1, 5, "rail-signal"),
+
+                        new LookUp(xPos - 7, yPos - 1, 2, "rail-chain-signal"),
+                        new LookUp(xPos - 7, yPos + 5, 6, "rail-chain-signal"),
+                        new LookUp(xPos + 3, yPos - 5, 1, "rail-chain-signal"),
+                        new LookUp(xPos + 7, yPos - 1, 5, "rail-chain-signal")
+                    }; 
+                        break;
+                    case 3: // --,
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 7, yPos - 5, 2, "rail-signal"),
+                        new LookUp(xPos - 7, yPos + 1, 6, "rail-signal"),
+                        new LookUp(xPos + 7, yPos + 1, 3, "rail-signal"),
+                        new LookUp(xPos + 3, yPos + 5, 7, "rail-signal"),
+
+                        new LookUp(xPos - 7, yPos - 5, 2, "rail-chain-signal"),
+                        new LookUp(xPos - 7, yPos + 1, 6, "rail-chain-signal"),
+                        new LookUp(xPos + 7, yPos + 1, 3, "rail-chain-signal"),
+                        new LookUp(xPos + 3, yPos + 5, 7, "rail-chain-signal")
+                    }; 
+                        break;
+                    case 4: // |,
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 5, yPos - 7, 0, "rail-signal"),
+                        new LookUp(xPos + 1, yPos - 7, 4, "rail-signal"),
+                        new LookUp(xPos + 5, yPos + 3, 3, "rail-signal"),
+                        new LookUp(xPos + 1, yPos + 7, 7, "rail-signal"),
+
+                        new LookUp(xPos - 5, yPos - 7, 0, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos - 7, 4, "rail-chain-signal"),
+                        new LookUp(xPos + 5, yPos + 3, 3, "rail-chain-signal"),
+                        new LookUp(xPos + 1, yPos + 7, 7, "rail-chain-signal")
+                    };  
+                        break;
+                    case 5: // ,|
+                    signals = new LookUp[]{
+                        new LookUp(xPos - 1, yPos - 7, 0, "rail-signal"),
+                        new LookUp(xPos + 5, yPos - 7, 4, "rail-signal"),
+                        new LookUp(xPos - 5, yPos + 3, 1, "rail-signal"),
+                        new LookUp(xPos - 1, yPos + 7, 5, "rail-signal"),
+
+                        new LookUp(xPos - 1, yPos - 7, 0, "rail-chain-signal"),
+                        new LookUp(xPos + 5, yPos - 7, 4, "rail-chain-signal"),
+                        new LookUp(xPos - 5, yPos + 3, 1, "rail-chain-signal"),
+                        new LookUp(xPos - 1, yPos + 7, 5, "rail-chain-signal")
+                    };  
+                        break;
+                    case 6: // ,--
+                    signals = new LookUp[]{
+                        new LookUp(xPos + 7, yPos - 5, 2, "rail-signal"),
+                        new LookUp(xPos + 7, yPos + 1, 6, "rail-signal"),
+                        new LookUp(xPos - 7, yPos + 1, 1, "rail-signal"),
+                        new LookUp(xPos - 3, yPos + 5, 5, "rail-signal"),
+
+                        new LookUp(xPos + 7, yPos - 5, 2, "rail-chain-signal"),
+                        new LookUp(xPos + 7, yPos + 1, 6, "rail-chain-signal"),
+                        new LookUp(xPos - 7, yPos + 1, 1, "rail-chain-signal"),
+                        new LookUp(xPos - 3, yPos + 5, 5, "rail-chain-signal")
+                    }; 
+                        break;
+                    case 7: // '--
+                    signals = new LookUp[]{
+                        new LookUp(xPos + 7, yPos - 1, 2, "rail-signal"),
+                        new LookUp(xPos + 7, yPos + 5, 6, "rail-signal"),
+                        new LookUp(xPos - 3, yPos - 5, 3, "rail-signal"),
+                        new LookUp(xPos - 7, yPos - 1, 7, "rail-signal"),
+
+                        new LookUp(xPos + 7, yPos - 1, 2, "rail-chain-signal"),
+                        new LookUp(xPos + 7, yPos + 5, 6, "rail-chain-signal"),
+                        new LookUp(xPos - 3, yPos - 5, 3, "rail-chain-signal"),
+                        new LookUp(xPos - 7, yPos - 1, 7, "rail-chain-signal")
+                    }; 
+                        break;
+                }
+                break;
+        }
+        return signals;
     }
 }
