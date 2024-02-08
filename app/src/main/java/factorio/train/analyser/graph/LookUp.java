@@ -1935,6 +1935,9 @@ public class LookUp {
         return neighbours;
     }
 
+    public static LookUp[] lookUpSignal(Track track) {
+        return lookUpSignal(new Entity(-1, track.getName(), track.getPosition(), track.getDirection()));
+    }
     public static LookUp[] lookUpSignal(Entity entry) {
         LookUp[] signals = {};
         int xPos = (int) entry.getPosition().getX();
