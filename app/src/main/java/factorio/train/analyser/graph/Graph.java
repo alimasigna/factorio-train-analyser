@@ -11,44 +11,50 @@ public class Graph {
     private ArrayList<Node> nodes;
     private Matrix matrix;
 
-    public Graph(String encodedString){
+    public Graph(String encodedString) {
         nodes = new ArrayList<>();
         setMatrix(encodedString);
         setNodes();
     }
 
     private void setMatrix(String encodedString) {
-        if(encodedString!=null) matrix = new Matrix(encodedString);
+        if (encodedString != null)
+            matrix = new Matrix(encodedString);
     }
 
     private void setNodes() {
-        if(matrix == null) return;
+        if (matrix == null)
+            return;
 
         ArrayList<Track> knownTracks = new ArrayList<>();
         ArrayList<Track>[][] tracks = matrix.convertToTracks();
 
-        for( int x = 0; x < tracks.length; x++) {          //go through all tracks, we only go through tracks. signals should be discovered this way too
+        for (int x = 0; x < tracks.length; x++) { // go through all tracks, we only go through tracks. signals should be
+                                                  // discovered this way too
             for (int y = 0; y < tracks[x].length; y++) {
-                if (tracks[x][y] == null) continue;
+                if (tracks[x][y] == null)
+                    continue;
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
-                    if (knownTracks.contains(track)) continue; //we only use tracks skip everything
-                    parseTracksToNodes(track,null, tracks, knownTracks);
+                    if (knownTracks.contains(track))
+                        continue; // we only use tracks skip everything
+                    parseTracksToNodes(track, null, tracks, knownTracks);
                 }
             }
         }
         System.out.println("XDD");
     }
 
-    private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks, ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
-        //store path callbyvalue
+    private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks,
+            ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+        // store path callbyvalue
         Track previousTrack;
         ArrayList<Track> previousTracks = new ArrayList<>();
-        if(visitedTracks == null) {
+        if (visitedTracks == null) {
             previousTrack = null;
         } else {
             previousTracks.addAll(visitedTracks);
-            previousTrack = previousTracks.get(previousTracks.size()-1);
+            previousTrack = previousTracks.get(previousTracks.size() - 1);
         }
         previousTracks.add(currentTrack);
         knownTracks.add(currentTrack);
@@ -59,83 +65,84 @@ public class Graph {
         ArrayList<Track> frontier = new ArrayList<>();
         ArrayList<Track> callBack = new ArrayList<>();
 
-        //set frontier and callback
-        if(previousTrack == null) {
+        // set frontier and callback
+        if (previousTrack == null) {
             frontier = in;
             callBack = out;
-        } else if(in.contains(previousTrack)) {
+        } else if (in.contains(previousTrack)) {
             callBack = in;
             frontier = out;
-        } else if(out.contains(previousTrack)) {
+        } else if (out.contains(previousTrack)) {
             callBack = out;
             frontier = in;
         }
 
-        //checks if the frontier/callback is behind a signal
-        if(!isNextTrackInSection(currentTrack, frontier)) {
+        // checks if the frontier/callback is behind a signal
+        if (!isNextTrackInSection(currentTrack, frontier)) {
             frontier = new ArrayList<>();
         }
-        if(!isNextTrackInSection(currentTrack, callBack)) {
+        if (!isNextTrackInSection(currentTrack, callBack)) {
             callBack = new ArrayList<>();
         }
 
         ArrayList<Node> frontierNodes = new ArrayList<>();
         ArrayList<Node> callbackNodes = new ArrayList<>();
 
-        //frontier rec step
-        for( Track frontTrack : frontier ){
-            if(previousTracks.contains(frontTrack)) {
+        // frontier rec step
+        for (Track frontTrack : frontier) {
+            if (previousTracks.contains(frontTrack)) {
                 continue;
             }
-            //if the signal is closer than the track, we stop here
-            if(hasSignalAttached(frontTrack) && !isInsideCurrentSection(currentTrack, frontTrack)) {
+            // if the signal is closer than the track, we stop here
+            if (hasSignalAttached(frontTrack) && !isInsideCurrentSection(currentTrack, frontTrack)) {
                 continue;
-            } 
-            if(!frontTrack.getFrontierNodes().isEmpty()) {
+            }
+            if (!frontTrack.getFrontierNodes().isEmpty()) {
                 frontierNodes.addAll(frontTrack.getFrontierNodes());
                 continue;
             }
             frontierNodes.addAll(parseTracksToNodes(frontTrack, previousTracks, tracks, knownTracks));
         }
-        if(frontier.size() == 0 || frontierNodes.size() == 0) { //Basecase
+        if (frontier.size() == 0 || frontierNodes.size() == 0) { // Basecase
             Node base = new Node();
             frontierNodes.add(base);
         }
-        for( Node frontNode : frontierNodes ) { //add current track to incoming frontier nodes
+        for (Node frontNode : frontierNodes) { // add current track to incoming frontier nodes
             frontNode.addTrack(currentTrack);
             currentTrack.addNode(frontNode);
             currentTrack.getFrontierNodes().add(frontNode);
         }
-        //callback rec step
+        // callback rec step
         ArrayList<Track> temp = new ArrayList<>(callBack);
-        for ( Track callbackTrack : temp ) {
-            if(callbackTrack == previousTrack) continue;
-            //the followgin if statements are need possible loops inside a node
-            if(previousTracks.contains(callbackTrack)) {
+        for (Track callbackTrack : temp) {
+            if (callbackTrack == previousTrack)
+                continue;
+            // the followgin if statements are need possible loops inside a node
+            if (previousTracks.contains(callbackTrack)) {
                 continue;
             }
-            //if the signal is closer than the track, we stop here
-            if(hasSignalAttached(callbackTrack) && !isInsideCurrentSection(currentTrack, callbackTrack)) {
+            // if the signal is closer than the track, we stop here
+            if (hasSignalAttached(callbackTrack) && !isInsideCurrentSection(currentTrack, callbackTrack)) {
                 callBack.remove(callbackTrack);
                 continue;
             }
-            if(!callbackTrack.getFrontierNodes().isEmpty()) {
+            if (!callbackTrack.getFrontierNodes().isEmpty()) {
                 callbackNodes.addAll(callbackTrack.getFrontierNodes());
                 continue;
             }
-                callbackNodes.addAll(parseTracksToNodes(callbackTrack, previousTracks, tracks, knownTracks));
+            callbackNodes.addAll(parseTracksToNodes(callbackTrack, previousTracks, tracks, knownTracks));
         }
-        //merging of callback and frontier Nodes
-        for( Node frontNode : frontierNodes ) {
-            if(callBack.size()==0){ //if our callback is empty, we add the given frontierNodes
+        // merging of callback and frontier Nodes
+        for (Node frontNode : frontierNodes) {
+            if (callBack.size() == 0) { // if our callback is empty, we add the given frontierNodes
                 nodes.add(frontNode);
                 continue;
             }
-                for( Node callbackNode : callbackNodes ) {
-                    Node base = Node.mergeNodes(frontNode, callbackNode);
-                    nodes.add(base);
-                    nodes.remove(callbackNode);
-                }
+            for (Node callbackNode : callbackNodes) {
+                Node base = Node.mergeNodes(frontNode, callbackNode);
+                nodes.add(base);
+                nodes.remove(callbackNode);
+            }
         }
 
         return frontierNodes; // gives back all possible connected nodes
@@ -146,33 +153,39 @@ public class Graph {
         return !signals.isEmpty();
     }
 
-    private boolean isInsideCurrentSection(Track currentTrack, Track nextTrack){  
+    private boolean isInsideCurrentSection(Track currentTrack, Track nextTrack) {
         ArrayList<Entity> signals = filterSignals(nextTrack.getSignals(), matrix.getMatrix());
-        if(!signals.isEmpty()){
-            for(Entity signal : signals) {
-                if(currentTrack.getDistance(signal) < currentTrack.getDistance(nextTrack)) { //if the signal is closer than the track, we stop here
+        if (!signals.isEmpty()) {
+            for (Entity signal : signals) {
+                double offset = 0.0;
+
+                //this is for an edge case where a signal should be closer to currentTrack but isnt
+                if(currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail") && (nextTrack.getDirection() == 0 || nextTrack.getDirection() == 2)) {
+                    offset = 0.3;
+                }
+                
+                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { // if the signal is closer than the track, we stop                                                                   // here
                     return false;
-                } else if (currentTrack.getName().equals("straight-rail") 
-                            && nextTrack.getName().equals("straight-rail"))
-                            {
-                                if (currentTrack.getDirection() == 0 ||  currentTrack.getDirection() == 2
-                                && currentTrack.getDistance(signal) < 4.3)  {
-                                    return false;
-                                }
-                                if ( !(currentTrack.getDirection() == 0 ||  currentTrack.getDirection() == 2)) {
-                                    return false;
-                                }
-                            }
-            } 
+                } else if (currentTrack.getName().equals("straight-rail") //there might be some edgecases where the signal
+                        && nextTrack.getName().equals("straight-rail")) {
+                    if (currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2
+                            && currentTrack.getDistance(signal) < 4.3) {
+                        return false;
+                    }
+                    if (!(currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)) {
+                        return false;
+                    }
+                }
+            }
         }
         return true;
     }
 
     private boolean isNextTrackInSection(Track currentTrack, ArrayList<Track> nextTracks) {
         ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
-        if(!signals.isEmpty()){
-            for(Track nextTrack : nextTracks) {
-                if(!isInsideCurrentSection(nextTrack, currentTrack)) {
+        if (!signals.isEmpty()) {
+            for (Track nextTrack : nextTracks) {
+                if (!isInsideCurrentSection(nextTrack, currentTrack)) {
                     return false;
                 }
             }
@@ -180,21 +193,23 @@ public class Graph {
         return true;
     }
 
-    //removes all LookUps to empty or non-existent coordinates
+    // removes all LookUps to empty or non-existent coordinates
     private static ArrayList<Entity> filterSignals(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
         ArrayList<Entity> validLookUps = new ArrayList<>();
         int x, y;
         int maxX = entries.length;
         int maxY = entries[0].length;
-        for (LookUp lookUp : lookUps) { //go through all possible lookups
+        for (LookUp lookUp : lookUps) { // go through all possible lookups
             x = lookUp.getX();
             y = lookUp.getY();
-            if (x >= 0 && y >= 0 //x and y must be positive
-                    && x < maxX && y < maxY //must be smaller than the matrix
-                    && entries[x][y] != null) { //there has to be entities
-                for( int i = 0; i < entries[x][y].size(); i++) { //if all is true, iterate through the entities on x and y
-                    if( entries[x][y].get(i).getDirection() == lookUp.getDirection()
-                    && entries[x][y].get(i).getName().equals(lookUp.getName())) { //for a match we need same direction and name
+            if (x >= 0 && y >= 0 // x and y must be positive
+                    && x < maxX && y < maxY // must be smaller than the matrix
+                    && entries[x][y] != null) { // there has to be entities
+                for (int i = 0; i < entries[x][y].size(); i++) { // if all is true, iterate through the entities on x
+                                                                 // and y
+                    if (entries[x][y].get(i).getDirection() == lookUp.getDirection()
+                            && entries[x][y].get(i).getName().equals(lookUp.getName())) { // for a match we need same
+                                                                                          // direction and name
                         validLookUps.add(entries[x][y].get(i));
                     }
                 }
@@ -208,15 +223,17 @@ public class Graph {
         int x, y;
         int maxX = tracks.length;
         int maxY = tracks[0].length;
-        for (LookUp lookUp : lookUps) { //go through all possible lookups
+        for (LookUp lookUp : lookUps) { // go through all possible lookups
             x = lookUp.getX();
             y = lookUp.getY();
-            if (x >= 0 && y >= 0 //x and y must be positive
-                    && x < maxX && y < maxY //must be smaller than the matrix
-                    && tracks[x][y] != null) { //there has to be entities
-                for( int i = 0; i < tracks[x][y].size(); i++) { //if all is true, iterate through the entities on x and y
-                    if( tracks[x][y].get(i).getDirection() == lookUp.getDirection()
-                            && tracks[x][y].get(i).getName().equals(lookUp.getName())) { //for a match we need same direction and name
+            if (x >= 0 && y >= 0 // x and y must be positive
+                    && x < maxX && y < maxY // must be smaller than the matrix
+                    && tracks[x][y] != null) { // there has to be entities
+                for (int i = 0; i < tracks[x][y].size(); i++) { // if all is true, iterate through the entities on x and
+                                                                // y
+                    if (tracks[x][y].get(i).getDirection() == lookUp.getDirection()
+                            && tracks[x][y].get(i).getName().equals(lookUp.getName())) { // for a match we need same
+                                                                                         // direction and name
                         validLookUps.add(tracks[x][y].get(i));
                     }
                 }
