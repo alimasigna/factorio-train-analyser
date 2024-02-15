@@ -8,8 +8,11 @@ public class Node {
     private ArrayList<Node>  dependsOn;
     private ArrayList<Track> tracks;
 
+    private boolean hasBeenMerged;
+
     public Node () {
         tracks = new ArrayList<>();
+        hasBeenMerged = false;
     }
 
     public void addTrack (Track track) {
@@ -21,6 +24,26 @@ public class Node {
             addTrack(track);
             track.addNode(this);
         }
+    }
+
+    public boolean getHasBeenMerged() {
+        return hasBeenMerged;
+    }
+
+    public void setHasBeenMerged(boolean hasBeenMerged) {
+        this.hasBeenMerged = hasBeenMerged;
+    }
+
+    public void setSection(Section section) {
+        this.section = section;
+    }
+
+    public ArrayList<Track> getTracks() {
+        return tracks;
+    }
+
+    public Section getSection() {
+        return section;
     }
 
     public static Node mergeNodes(Node a, Node b) {

@@ -4,15 +4,18 @@ import factorio.train.analyser.Matrix;
 import factorio.train.analyser.jsonmodels.Entity;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Graph {
-    private Section[] sections;
+    private ArrayList<Section> sections;
 
     private ArrayList<Node> nodes;
     private Matrix matrix;
 
     public Graph(String encodedString) {
         nodes = new ArrayList<>();
+        sections = new ArrayList<>();
         setMatrix(encodedString);
         setNodes();
     }
@@ -39,14 +42,52 @@ public class Graph {
                     if (knownTracks.contains(track))
                         continue; // we only use tracks skip everything
                     parseTracksToNodes(track, null, tracks, knownTracks);
+                    // TODO check later if its okay
+                    Section section = new Section(nodes);
+                    sections.add(section);
+                    nodes = new ArrayList<>(); // resetting nodes after each run
                 }
             }
         }
+        mergeSections(tracks);
         System.out.println("XDD");
+    }
+
+    private void mergeSections(ArrayList<Track>[][] tracks) {
+        ArrayList<Section> mergedSections = new ArrayList<>();
+
+        for(Section section : sections) {
+            Queue<Node> checkNodesQueue = new LinkedList<>(section.getNodes());
+            ArrayList<Node> checkNodes = section.getNodes();
+            if(checkNodes.get(0).getHasBeenMerged()) continue; // if the node has been merged, we ignore it (it has been merged in the last step already
+
+            while(!checkNodesQueue.isEmpty()) {
+                Node checkNode = checkNodesQueue.poll();
+                if(checkNode.getHasBeenMerged()) continue;
+                ArrayList<Track> tracksInNodes = checkNode.getTracks();
+                for (Track track : tracksInNodes) {
+                    ArrayList<Track> crossingTracks = filterLookupsToTrack(track.getCrossed(), tracks);
+                    for (Track crossedTrack : crossingTracks) { 
+                        ArrayList<Node> toBeAddedNodes = crossedTrack.getNodes();
+                        for( Node addedNode : toBeAddedNodes) { //adding all the found new nodes
+                            if(!checkNodes.contains(addedNode)) {
+                                checkNodes.add(addedNode);
+                                checkNodesQueue.add(addedNode);
+                            }
+                        }
+                    }
+                }
+                checkNode.setHasBeenMerged(true); // setThisValue to be ignored in later steps
+            }
+            Section mergedSection = new Section(checkNodes);
+            mergedSections.add(mergedSection);
+        }
+        sections = mergedSections;
     }
 
     private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks,
             ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+
         // store path callbyvalue
         Track previousTrack;
         ArrayList<Track> previousTracks = new ArrayList<>();
@@ -77,7 +118,7 @@ public class Graph {
             frontier = in;
         }
 
-        // checks if the frontier/callback is behind a signal
+        // checks if the frontier/callback is behind a signal, if yes we ignore it
         if (!isNextTrackInSection(currentTrack, frontier)) {
             frontier = new ArrayList<>();
         }
@@ -159,16 +200,22 @@ public class Graph {
             for (Entity signal : signals) {
                 double offset = 0.0;
 
-                //this is for an edge case where a signal should be closer to currentTrack but isnt
-                if(currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail") && (nextTrack.getDirection() == 0 || nextTrack.getDirection() == 2)) {
+                // this is for an edge case where a signal should be closer to currentTrack but
+                // isnt
+                if (currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail")
+                        && (nextTrack.getDirection() == 0 || nextTrack.getDirection() == 2)) {
                     offset = 0.3;
                 }
-                
-                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { // if the signal is closer than the track, we stop                                                                   // here
+
+                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { // if the signal
+                                                                                                       // is closer than
+                                                                                                       // the track, we
+                                                                                                       // stop // here
                     return false;
-                } else if (currentTrack.getName().equals("straight-rail") //there might be some edgecases where the signal
+                } else if (currentTrack.getName().equals("straight-rail") // there might be some edgecases where the
+                                                                          // signal
                         && nextTrack.getName().equals("straight-rail")) {
-                    if (currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2
+                    if ((currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)
                             && currentTrack.getDistance(signal) < 4.3) {
                         return false;
                     }
