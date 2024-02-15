@@ -56,21 +56,24 @@ public class Graph {
     private void mergeSections(ArrayList<Track>[][] tracks) {
         ArrayList<Section> mergedSections = new ArrayList<>();
 
-        for(Section section : sections) {
+        for (Section section : sections) {
             Queue<Node> checkNodesQueue = new LinkedList<>(section.getNodes());
             ArrayList<Node> checkNodes = section.getNodes();
-            if(checkNodes.get(0).getHasBeenMerged()) continue; // if the node has been merged, we ignore it (it has been merged in the last step already
+            if (checkNodes.get(0).getHasBeenMerged())
+                continue; // if the node has been merged, we ignore it (it has been merged in the last
+                          // step already
 
-            while(!checkNodesQueue.isEmpty()) {
+            while (!checkNodesQueue.isEmpty()) {
                 Node checkNode = checkNodesQueue.poll();
-                if(checkNode.getHasBeenMerged()) continue;
+                if (checkNode.getHasBeenMerged())
+                    continue;
                 ArrayList<Track> tracksInNodes = checkNode.getTracks();
                 for (Track track : tracksInNodes) {
                     ArrayList<Track> crossingTracks = filterLookupsToTrack(track.getCrossed(), tracks);
-                    for (Track crossedTrack : crossingTracks) { 
+                    for (Track crossedTrack : crossingTracks) {
                         ArrayList<Node> toBeAddedNodes = crossedTrack.getNodes();
-                        for( Node addedNode : toBeAddedNodes) { //adding all the found new nodes
-                            if(!checkNodes.contains(addedNode)) {
+                        for (Node addedNode : toBeAddedNodes) { // adding all the found new nodes
+                            if (!checkNodes.contains(addedNode)) {
                                 checkNodes.add(addedNode);
                                 checkNodesQueue.add(addedNode);
                             }
@@ -83,6 +86,30 @@ public class Graph {
             mergedSections.add(mergedSection);
         }
         sections = mergedSections;
+    }
+
+    private void connectTracks(ArrayList<Track> nextTracks, Track currentTrack, ArrayList<Track>[][] tracks) {
+        if (!nextTracks.isEmpty()) {
+            ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
+            if (signals.size() == 2) { // is bidirectional
+                for (Track nextTrack : nextTracks) {
+                    nextTrack.goesTo.add(currentTrack);
+                    currentTrack.goesTo.add(nextTrack);
+                }
+            } else if (signals.size() == 1) {
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signals.get(0)), tracks); // retrieve outgoingtracks from signal
+
+                if (outGoingTracks.contains(nextTracks.get(0))) {
+                    for (Track nextTrack : nextTracks) {
+                        currentTrack.goesTo.add(nextTrack);
+                    }
+                } else {
+                    for (Track nextTrack : nextTracks) {
+                        nextTrack.goesTo.add(currentTrack);
+                    }
+                }            
+            }
+        }
     }
 
     private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks,
@@ -120,9 +147,11 @@ public class Graph {
 
         // checks if the frontier/callback is behind a signal, if yes we ignore it
         if (!isNextTrackInSection(currentTrack, frontier)) {
+            connectTracks(frontier, currentTrack, tracks);
             frontier = new ArrayList<>();
         }
         if (!isNextTrackInSection(currentTrack, callBack)) {
+            connectTracks(callBack, currentTrack, tracks);
             callBack = new ArrayList<>();
         }
 
@@ -200,6 +229,27 @@ public class Graph {
             for (Entity signal : signals) {
                 double offset = 0.0;
 
+                if (currentTrack.getName().equals("straight-rail") && nextTrack.getName().equals("straight-rail")) { // if
+                                                                                                                     // tilted
+                                                                                                                     // straight
+                                                                                                                     // rails
+                                                                                                                     // are
+                                                                                                                     // together
+                                                                                                                     // use
+                                                                                                                     // this
+                                                                                                                     // logic
+                    if ((currentTrack.getDirection() == 1 && nextTrack.getDirection() == 5)
+                            || (currentTrack.getDirection() == 5 && nextTrack.getDirection() == 1)) {
+                        return currentTrack.getPosition().getX() == nextTrack.getPosition().getX(); // if they are on
+                                                                                                    // same x-axis they
+                                                                                                    // are together
+                    }
+                    if ((currentTrack.getDirection() == 3 && nextTrack.getDirection() == 7)
+                            || (currentTrack.getDirection() == 7 && nextTrack.getDirection() == 3)) {
+                        return currentTrack.getPosition().getY() == nextTrack.getPosition().getY();
+                    }
+                }
+
                 // this is for an edge case where a signal should be closer to currentTrack but
                 // isnt
                 if (currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail")
@@ -208,20 +258,19 @@ public class Graph {
                 }
 
                 if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { // if the signal
-                                                                                                       // is closer than
-                                                                                                       // the track, we
-                                                                                                       // stop // here
+                                                                                                       // is between a
+                                                                                                       // curved and a
+                                                                                                       // straight the
+                                                                                                       // cal need the
+                                                                                                       // offset
                     return false;
-                } else if (currentTrack.getName().equals("straight-rail") // there might be some edgecases where the
-                                                                          // signal
-                        && nextTrack.getName().equals("straight-rail")) {
+                } else if (currentTrack.getName().equals("straight-rail")
+                        && nextTrack.getName().equals("straight-rail")) { // handles weird edge case lol
                     if ((currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)
                             && currentTrack.getDistance(signal) < 4.3) {
                         return false;
                     }
-                    if (!(currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)) {
-                        return false;
-                    }
+
                 }
             }
         }

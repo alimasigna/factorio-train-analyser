@@ -14,11 +14,14 @@ public class Track {
 
     private Position position;
 
+    public ArrayList<Track> goesTo;
+
     private String name;
 
     public Track (Node parent, Entity entity) {
         frontierNodes = new ArrayList<>();
         nodes = new ArrayList<>();
+        goesTo = new ArrayList<>();
         if (parent != null) this.nodes.add(parent);
         this.length = entity.getName().equals("straight-rail") ? 1 : 3;
         this.direction = entity.getDirection();
