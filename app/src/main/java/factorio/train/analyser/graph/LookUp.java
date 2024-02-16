@@ -754,21 +754,21 @@ public class LookUp {
                                 new LookUp(xPos + 8, yPos + 4, 7, "curved-rail"),
 
                                 new LookUp(xPos - 8, yPos, 1, "curved-rail"),
-                                new LookUp(xPos - 4, yPos - 4, 7, "curved-rail"),
-                                new LookUp(xPos - 4, yPos, 7, "curved-rail"),
-                                new LookUp(xPos - 4, yPos + 4, 7, "curved-rail"),
-                                new LookUp(xPos, yPos - 12, 7, "curved-rail"),
-                                new LookUp(xPos, yPos - 8, 7, "curved-rail"),
-                                new LookUp(xPos, yPos - 4, 7, "curved-rail"),
-                                new LookUp(xPos, yPos, 7, "curved-rail"),
-                                new LookUp(xPos, yPos + 4, 7, "curved-rail"),
-                                new LookUp(xPos, yPos + 8, 7, "curved-rail"),
-                                new LookUp(xPos, yPos + 12, 7, "curved-rail"),
-                                new LookUp(xPos + 4, yPos - 8, 7, "curved-rail"),
-                                new LookUp(xPos + 4, yPos - 4, 7, "curved-rail"),
-                                new LookUp(xPos + 4, yPos, 7, "curved-rail"),
-                                new LookUp(xPos + 4, yPos + 4, 7, "curved-rail"),
-                                new LookUp(xPos + 4, yPos + 8, 7, "curved-rail"),
+                                new LookUp(xPos - 4, yPos - 4, 1, "curved-rail"),
+                                new LookUp(xPos - 4, yPos, 1, "curved-rail"),
+                                new LookUp(xPos - 4, yPos + 4, 1, "curved-rail"),
+                                new LookUp(xPos, yPos - 12, 1, "curved-rail"),
+                                new LookUp(xPos, yPos - 8, 1, "curved-rail"),
+                                new LookUp(xPos, yPos - 4, 1, "curved-rail"),
+                                new LookUp(xPos, yPos, 1, "curved-rail"),
+                                new LookUp(xPos, yPos + 4, 1, "curved-rail"),
+                                new LookUp(xPos, yPos + 8, 1, "curved-rail"),
+                                new LookUp(xPos, yPos + 12, 1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 8, 1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos - 4, 1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos, 1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 4, 1, "curved-rail"),
+                                new LookUp(xPos + 4, yPos + 8, 1, "curved-rail"),
 
                                 new LookUp(xPos - 8, yPos - 4, 3, "curved-rail"),
                                 new LookUp(xPos - 4, yPos - 4, 3, "curved-rail"),
@@ -2136,7 +2136,7 @@ public class LookUp {
             switch (signal.getDirection()) {
                 case 0:
                     outgoingTracks = new LookUp[] {
-                            new LookUp(xPos + 3, yPos - 3, 0, "straight-rail"),
+                            new LookUp(xPos + 3, yPos + 3, 0, "straight-rail"),
                             new LookUp(xPos + 1, yPos + 9, 5, "curved-rail"),
                             new LookUp(xPos + 5, yPos + 9, 4, "curved-rail"),
                     };
@@ -2150,7 +2150,7 @@ public class LookUp {
                     break;
                 case 2:
                     outgoingTracks = new LookUp[] {
-                            new LookUp(xPos - 3, yPos - 3, 2, "straight-rail"),
+                            new LookUp(xPos - 3, yPos + 3, 2, "straight-rail"),
                             new LookUp(xPos - 9, yPos + 1, 7, "curved-rail"),
                             new LookUp(xPos - 9, yPos + 5, 6, "curved-rail"),
                     };

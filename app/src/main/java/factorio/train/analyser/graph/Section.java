@@ -18,4 +18,12 @@ public class Section {
     public ArrayList<Node> getNodes() {
         return nodes;
     }
+
+    public boolean getIsFree(){
+        return this.isFree;
+    }
+
+    public void setIsFree(boolean isFree){
+        this.isFree = isFree;
+    }
 }
