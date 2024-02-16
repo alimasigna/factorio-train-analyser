@@ -91,24 +91,20 @@ public class Graph {
     private void connectTracks(ArrayList<Track> nextTracks, Track currentTrack, ArrayList<Track>[][] tracks) {
         if (!nextTracks.isEmpty()) {
             ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
-            if (signals.size() == 2) { // is bidirectional
-                for (Track nextTrack : nextTracks) {
-                    nextTrack.goesTo.add(currentTrack);
-                    currentTrack.goesTo.add(nextTrack);
-                }
-            } else if (signals.size() == 1) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signals.get(0)),
-                        tracks); // retrieve outgoingtracks from signal
-
+            for(Entity signal : signals) {
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal), tracks); 
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.goesTo.add(nextTrack);
+                        if(signal.getName().equals("rail-chain-signal")) currentTrack.dependsOn.add(nextTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.goesTo.add(currentTrack);
+                        if(signal.getName().equals("rail-chain-signal")) nextTrack.dependsOn.add(currentTrack);
                     }
                 }
+
             }
         }
     }
