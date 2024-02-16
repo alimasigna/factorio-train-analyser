@@ -50,7 +50,33 @@ public class Graph {
             }
         }
         mergeSections(tracks);
+        mapDirectionsToNodes(tracks);
         System.out.println("XDD");
+    }
+
+    private void mapDirectionsToNodes(ArrayList<Track>[][] tracks) {
+        for (int x = 0; x < tracks.length; x++) { 
+            for (int y = 0; y < tracks[x].length; y++) {
+                if (tracks[x][y] == null)
+                    continue;
+                for (int i = 0; i < tracks[x][y].size(); i++) {
+                    Track track = tracks[x][y].get(i);
+                    if(track.goesTo.isEmpty() && track.dependsOn.isEmpty())
+                        continue;
+                    ArrayList<Node> parentNodes = track.getNodes();
+                    ArrayList<Track> outGoingTracks = track.goesTo;
+                    ArrayList<Track> outDependendTracks = track.dependsOn;
+                    for(Node parentNode : parentNodes) {
+                        for(Track outGoingTrack : outGoingTracks) {
+                            parentNode.setNextNodes(outGoingTrack.getNodes());
+                        }
+                        for(Track outDependendTrack : outDependendTracks) {
+                            parentNode.setDependsOn(outDependendTrack.getNodes());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void mergeSections(ArrayList<Track>[][] tracks) {
@@ -91,17 +117,19 @@ public class Graph {
     private void connectTracks(ArrayList<Track> nextTracks, Track currentTrack, ArrayList<Track>[][] tracks) {
         if (!nextTracks.isEmpty()) {
             ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
-            for(Entity signal : signals) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal), tracks); 
+            for (Entity signal : signals) {
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal), tracks);
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.goesTo.add(nextTrack);
-                        if(signal.getName().equals("rail-chain-signal")) currentTrack.dependsOn.add(nextTrack);
+                        if (signal.getName().equals("rail-chain-signal"))
+                            currentTrack.dependsOn.add(nextTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.goesTo.add(currentTrack);
-                        if(signal.getName().equals("rail-chain-signal")) nextTrack.dependsOn.add(currentTrack);
+                        if (signal.getName().equals("rail-chain-signal"))
+                            nextTrack.dependsOn.add(currentTrack);
                     }
                 }
 
@@ -259,7 +287,7 @@ public class Graph {
                     offset = 0.3;
                 }
                 // if the signal is between a curved and a straight the cal need the offset
-                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { 
+                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) {
                     return false;
                     // this part maps horizon/vert straight-rails with each other
                 } else if (currentTrack.getName().equals("straight-rail")

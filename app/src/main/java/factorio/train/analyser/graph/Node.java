@@ -11,6 +11,8 @@ public class Node {
     private boolean hasBeenMerged;
 
     public Node () {
+        nextNodes = new ArrayList<>();
+        dependsOn = new ArrayList<>();
         tracks = new ArrayList<>();
         hasBeenMerged = false;
     }
@@ -24,6 +26,22 @@ public class Node {
             addTrack(track);
             track.addNode(this);
         }
+    }
+
+    public void setNextNodes(ArrayList<Node> nextNodes) {
+        for(Node nextNode : nextNodes) {
+            if(!this.nextNodes.contains(nextNode)){
+                this.nextNodes.add(nextNode);
+            }
+        }  
+    }
+
+    public void setDependsOn(ArrayList<Node> dependsOnNodes) {
+        for(Node dependsOnNode : dependsOnNodes) {
+            if(!this.dependsOn.contains(dependsOnNode)){
+                this.dependsOn.add(dependsOnNode);
+            }
+        }  
     }
 
     public boolean getHasBeenMerged() {
