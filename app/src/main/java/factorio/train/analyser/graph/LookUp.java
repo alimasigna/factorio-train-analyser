@@ -2162,6 +2162,30 @@ public class LookUp {
                             new LookUp(xPos - 1, yPos - 9, 1, "curved-rail"),
                     };
                     break;
+                case 7:
+                    outgoingTracks = new LookUp[] {
+                            new LookUp(xPos + 7, yPos + 5, 0, "curved-rail"),
+                            new LookUp(xPos + 9, yPos + 3, 7, "curved-rail"),
+                    };
+                    break;
+                case 5:
+                    outgoingTracks = new LookUp[] {
+                            new LookUp(xPos + 5, yPos - 7, 6, "curved-rail"),
+                            new LookUp(xPos + 3, yPos - 9, 5, "curved-rail"),
+                    };
+                    break;
+                case 1:
+                    outgoingTracks = new LookUp[] {
+                            new LookUp(xPos - 5, yPos + 7, 2, "curved-rail"),
+                            new LookUp(xPos - 3, yPos + 9, 1, "curved-rail"),
+                    };
+                    break;
+                case 3:
+                    outgoingTracks = new LookUp[] {
+                            new LookUp(xPos - 7, yPos - 5, 4, "curved-rail"),
+                            new LookUp(xPos - 9, yPos - 3, 3, "curved-rail"),
+                    };
+                    break;
             }
         }
         return outgoingTracks;
