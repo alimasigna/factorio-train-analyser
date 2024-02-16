@@ -97,7 +97,8 @@ public class Graph {
                     currentTrack.goesTo.add(nextTrack);
                 }
             } else if (signals.size() == 1) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signals.get(0)), tracks); // retrieve outgoingtracks from signal
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signals.get(0)),
+                        tracks); // retrieve outgoingtracks from signal
 
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
@@ -107,7 +108,7 @@ public class Graph {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.goesTo.add(currentTrack);
                     }
-                }            
+                }
             }
         }
     }
@@ -229,20 +230,12 @@ public class Graph {
             for (Entity signal : signals) {
                 double offset = 0.0;
 
-                if (currentTrack.getName().equals("straight-rail") && nextTrack.getName().equals("straight-rail")) { // if
-                                                                                                                     // tilted
-                                                                                                                     // straight
-                                                                                                                     // rails
-                                                                                                                     // are
-                                                                                                                     // together
-                                                                                                                     // use
-                                                                                                                     // this
-                                                                                                                     // logic
+                // this part maps diagonal straight rails with each other
+                if (currentTrack.getName().equals("straight-rail") && nextTrack.getName().equals("straight-rail")) {
+                    // look on the x-axis if these type of directions
                     if ((currentTrack.getDirection() == 1 && nextTrack.getDirection() == 5)
                             || (currentTrack.getDirection() == 5 && nextTrack.getDirection() == 1)) {
-                        return currentTrack.getPosition().getX() == nextTrack.getPosition().getX(); // if they are on
-                                                                                                    // same x-axis they
-                                                                                                    // are together
+                        return currentTrack.getPosition().getX() == nextTrack.getPosition().getX();
                     }
                     if ((currentTrack.getDirection() == 3 && nextTrack.getDirection() == 7)
                             || (currentTrack.getDirection() == 7 && nextTrack.getDirection() == 3)) {
@@ -250,22 +243,31 @@ public class Graph {
                     }
                 }
 
-                // this is for an edge case where a signal should be closer to currentTrack but
-                // isnt
+                // this part maps a curved rail to diagonal rail
+                if (currentTrack.getName().equals("curved-rail") &&
+                        nextTrack.getName().equals("straight-rail") &&
+                        nextTrack.getDirection() != 0 &&
+                        nextTrack.getDirection() != 2) {
+                    // these curved rails are always merged with the diagonal rail
+                    if (currentTrack.getDirection() == 7 || currentTrack.getDirection() == 1
+                            || currentTrack.getDirection() == 3 || currentTrack.getDirection() == 5) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+
+                // this part maps a curved rail to a horizont or vertical straight-rail
                 if (currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail")
                         && (nextTrack.getDirection() == 0 || nextTrack.getDirection() == 2)) {
                     offset = 0.3;
                 }
-
-                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { // if the signal
-                                                                                                       // is between a
-                                                                                                       // curved and a
-                                                                                                       // straight the
-                                                                                                       // cal need the
-                                                                                                       // offset
+                // if the signal is between a curved and a straight the cal need the offset
+                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) { 
                     return false;
+                    // this part maps horizon/vert straight-rails with each other
                 } else if (currentTrack.getName().equals("straight-rail")
-                        && nextTrack.getName().equals("straight-rail")) { // handles weird edge case lol
+                        && nextTrack.getName().equals("straight-rail")) {
                     if ((currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)
                             && currentTrack.getDistance(signal) < 4.3) {
                         return false;
