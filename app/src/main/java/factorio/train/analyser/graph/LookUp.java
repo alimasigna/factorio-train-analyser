@@ -2128,7 +2128,7 @@ public class LookUp {
         return signals;
     }
 
-    public static LookUp[] lookUpOutgoingTracks(Entity signal) {
+    public static LookUp[] lookUpOutgoingTracks(Entity signal, Track track) {
         LookUp[] outgoingTracks = {};
         int xPos = (int) signal.getPosition().getX();
         int yPos = (int) signal.getPosition().getY();
@@ -2163,11 +2163,20 @@ public class LookUp {
                     };
                     break;
                 case 7:
-                    outgoingTracks = new LookUp[] {
-                            new LookUp(xPos + 7, yPos + 5, 0, "curved-rail"),
-                            new LookUp(xPos + 9, yPos + 3, 7, "curved-rail"),
-                            new LookUp(xPos + 5, yPos - 1, 5, "straight-rail"),
-                    };
+                //for whatever reason, if the track is curved the striaght rail with dir 1 is outgoing
+                    if (track.getName().equals("curved-rail")) {
+                        outgoingTracks = new LookUp[] {
+                                new LookUp(xPos + 7, yPos + 5, 0, "curved-rail"),
+                                new LookUp(xPos + 9, yPos + 3, 7, "curved-rail"),
+                                new LookUp(xPos + 3, yPos + 1, 1, "straight-rail"),
+                        };
+                    } else {
+                        outgoingTracks = new LookUp[] {
+                                new LookUp(xPos + 7, yPos + 5, 0, "curved-rail"),
+                                new LookUp(xPos + 9, yPos + 3, 7, "curved-rail"),
+                                new LookUp(xPos + 5, yPos - 1, 5, "straight-rail"),
+                        };
+                    }
                     break;
                 case 5:
                     outgoingTracks = new LookUp[] {

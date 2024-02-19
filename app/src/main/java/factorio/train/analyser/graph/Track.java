@@ -12,12 +12,9 @@ public class Track {
     private  boolean isEndTrack;
     private int length;
     private int direction;
-
     private Position position;
-
     private ArrayList<Track> goesTo;
     private ArrayList<Track> dependsOn;
-
     private String name;
 
     public Track (Node parent, Entity entity) {
@@ -35,6 +32,14 @@ public class Track {
 
     public void addNode(Node node) {
         this.nodes.add(node);
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public void setLength(int length) {
+        this.length = length;
     }
 
     public void setDependsOn(Track dependsOn) {

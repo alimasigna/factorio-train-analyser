@@ -212,7 +212,7 @@ public class Graph {
         if (!nextTracks.isEmpty()) {
             ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
             for (Entity signal : signals) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal), tracks);
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal, currentTrack), tracks);
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.setGoesTo(nextTrack);

@@ -7,20 +7,23 @@ public class Node {
     private ArrayList<Node>  nextNodes;
     private ArrayList<Node>  dependsOn;
     private ArrayList<Track> tracks;
+    private boolean isEndNode;
+    private int length;
 
     private boolean hasBeenMerged;
-    private boolean isEndNode;
-
+   
     public Node () {
         nextNodes = new ArrayList<>();
         dependsOn = new ArrayList<>();
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
+        length = 0;
     }
 
     public void addTrack (Track track) {
         this.tracks.add(track);
+        this.length += track.getLength();
     }
 
     public void addTrack (ArrayList<Track> tracks) {
@@ -28,6 +31,10 @@ public class Node {
             addTrack(track);
             track.addNode(this);
         }
+    }
+
+    public int getLength() {
+        return length;
     }
 
     public void setNextNodes(ArrayList<Node> nextNodes) {
@@ -85,6 +92,7 @@ public class Node {
     private void removeTracks(){
         for(Track track : tracks) {
             track.removeNode(this);
+            this.length -= track.getLength();
         }
     }
 }
