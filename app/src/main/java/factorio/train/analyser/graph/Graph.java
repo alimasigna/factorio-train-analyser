@@ -17,7 +17,7 @@ public class Graph {
         nodes = new ArrayList<>();
         sections = new ArrayList<>();
         setMatrix(encodedString);
-        setNodes();
+        setSections();
     }
 
     private void setMatrix(String encodedString) {
@@ -25,7 +25,7 @@ public class Graph {
             matrix = new Matrix(encodedString);
     }
 
-    private void setNodes() {
+    private void setSections() {
         if (matrix == null)
             return;
 
@@ -50,27 +50,59 @@ public class Graph {
             }
         }
         mergeSections(tracks);
-        mapDirectionsToNodes(tracks);
-        System.out.println("XDD");
+        mapTrackFieldToNodeField(tracks);
+        generateEndSections();
     }
 
-    private void mapDirectionsToNodes(ArrayList<Track>[][] tracks) {
-        for (int x = 0; x < tracks.length; x++) { 
+    private void generateEndSections() {
+        ArrayList<Section> newSections = new ArrayList<>();
+        for (Section section : sections) {
+            ArrayList<Node> endNodes = new ArrayList<>();
+            for (Node node : section.getNodes()) {
+                if (node.getIsEndNode()) {
+                    endNodes.add(node);
+                }
+            }
+            if (!endNodes.isEmpty()) {
+                Section endSection = section.splitSection(endNodes);
+                endSection.setIsEndSection(true);
+                if (!section.getNodes().isEmpty()) {
+                    newSections.add(section);
+                }
+                newSections.add(endSection);
+            } else {
+                newSections.add(section);
+            }
+
+        }
+        sections = newSections;
+    }
+
+    private void mapTrackFieldToNodeField(ArrayList<Track>[][] tracks) {
+        for (int x = 0; x < tracks.length; x++) {
             for (int y = 0; y < tracks[x].length; y++) {
                 if (tracks[x][y] == null)
                     continue;
                 for (int i = 0; i < tracks[x][y].size(); i++) {
                     Track track = tracks[x][y].get(i);
-                    if(track.goesTo.isEmpty() && track.dependsOn.isEmpty())
+
+                    if (track.getIsEndTrack()) {
+                        for (Node endNode : track.getNodes()) {
+                            endNode.setIsEndNode(true);
+                        }
+                    }
+
+                    if (track.getGoesTo().isEmpty() && track.getDependsOn().isEmpty())
                         continue;
+
                     ArrayList<Node> parentNodes = track.getNodes();
-                    ArrayList<Track> outGoingTracks = track.goesTo;
-                    ArrayList<Track> outDependendTracks = track.dependsOn;
-                    for(Node parentNode : parentNodes) {
-                        for(Track outGoingTrack : outGoingTracks) {
+                    ArrayList<Track> outGoingTracks = track.getGoesTo();
+                    ArrayList<Track> outDependendTracks = track.getDependsOn();
+                    for (Node parentNode : parentNodes) {
+                        for (Track outGoingTrack : outGoingTracks) {
                             parentNode.setNextNodes(outGoingTrack.getNodes());
                         }
-                        for(Track outDependendTrack : outDependendTracks) {
+                        for (Track outDependendTrack : outDependendTracks) {
                             parentNode.setDependsOn(outDependendTrack.getNodes());
                         }
                     }
@@ -121,15 +153,15 @@ public class Graph {
                 ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal), tracks);
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
-                        currentTrack.goesTo.add(nextTrack);
+                        currentTrack.setGoesTo(nextTrack);
                         if (signal.getName().equals("rail-chain-signal"))
-                            currentTrack.dependsOn.add(nextTrack);
+                            currentTrack.setDependsOn(nextTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
-                        nextTrack.goesTo.add(currentTrack);
+                        nextTrack.setGoesTo(currentTrack);
                         if (signal.getName().equals("rail-chain-signal"))
-                            nextTrack.dependsOn.add(currentTrack);
+                            nextTrack.setDependsOn(currentTrack);
                     }
                 }
 
@@ -168,6 +200,11 @@ public class Graph {
         } else if (out.contains(previousTrack)) {
             callBack = out;
             frontier = in;
+        }
+
+        // checks if our current track is an ending one
+        if (callBack.isEmpty() || frontier.isEmpty()) {
+            currentTrack.setIsEndTrack(true);
         }
 
         // checks if the frontier/callback is behind a signal, if yes we ignore it

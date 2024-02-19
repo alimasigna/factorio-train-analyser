@@ -9,12 +9,14 @@ public class Node {
     private ArrayList<Track> tracks;
 
     private boolean hasBeenMerged;
+    private boolean isEndNode;
 
     public Node () {
         nextNodes = new ArrayList<>();
         dependsOn = new ArrayList<>();
         tracks = new ArrayList<>();
         hasBeenMerged = false;
+        isEndNode = false;
     }
 
     public void addTrack (Track track) {
@@ -34,6 +36,14 @@ public class Node {
                 this.nextNodes.add(nextNode);
             }
         }  
+    }
+
+    public void setIsEndNode(boolean isEndNode) {
+        this.isEndNode = isEndNode;
+    }
+
+    public boolean getIsEndNode() {
+        return this.isEndNode;
     }
 
     public void setDependsOn(ArrayList<Node> dependsOnNodes) {

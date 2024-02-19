@@ -9,13 +9,14 @@ public class Track {
     private ArrayList<Node> nodes;
 
     private ArrayList<Node> frontierNodes;
+    private  boolean isEndTrack;
     private int length;
     private int direction;
 
     private Position position;
 
-    public ArrayList<Track> goesTo;
-    public ArrayList<Track> dependsOn;
+    private ArrayList<Track> goesTo;
+    private ArrayList<Track> dependsOn;
 
     private String name;
 
@@ -24,6 +25,7 @@ public class Track {
         nodes = new ArrayList<>();
         goesTo = new ArrayList<>();
         dependsOn = new ArrayList<>();
+        isEndTrack = false;
         if (parent != null) this.nodes.add(parent);
         this.length = entity.getName().equals("straight-rail") ? 1 : 3;
         this.direction = entity.getDirection();
@@ -33,6 +35,30 @@ public class Track {
 
     public void addNode(Node node) {
         this.nodes.add(node);
+    }
+
+    public void setDependsOn(Track dependsOn) {
+        this.dependsOn.add(dependsOn);
+    }
+
+    public ArrayList<Track> getDependsOn() {
+        return dependsOn;
+    }
+
+    public void setGoesTo(Track goesTo) {
+        this.goesTo.add(goesTo);
+    }
+
+    public ArrayList<Track> getGoesTo() {
+        return goesTo;
+    }
+
+    public void setIsEndTrack(boolean isEndTrack) {
+        this.isEndTrack = isEndTrack;
+    }
+
+    public boolean getIsEndTrack() {
+        return this.isEndTrack;
     }
 
     public void removeNode(Node node) {
