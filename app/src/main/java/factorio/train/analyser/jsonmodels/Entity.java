@@ -1,4 +1,7 @@
 package factorio.train.analyser.jsonmodels;
+
+import factorio.train.analyser.graph.LookUp;
+
 public class Entity {
     private int entity_number;
     private String name;
@@ -18,4 +21,9 @@ public class Entity {
     public String getName() {
         return name;
     }
+
+    public int getDirection() {
+        return direction;
+    }
+
 }
