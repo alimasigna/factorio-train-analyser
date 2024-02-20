@@ -3,7 +3,7 @@
  */
 package factorio.train.analyser;
 
-import factorio.train.analyser.Decoder.Decoder;
+import factorio.train.analyser.decoder.Decoder;
 import factorio.train.analyser.graph.Graph;
 
 public class App {
