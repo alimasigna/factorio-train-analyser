@@ -1,4 +1,4 @@
-package factorio.train.analyser.Decoder;
+package factorio.train.analyser.decoder;
 
 import java.util.Base64;
 import java.util.zip.Inflater;

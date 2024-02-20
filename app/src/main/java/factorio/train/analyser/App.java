@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import factorio.train.analyser.Decoder.Decoder;
+import factorio.train.analyser.decoder.Decoder;
 import factorio.train.analyser.graph.Graph;
 import factorio.train.analyser.graph.Node;
 import factorio.train.analyser.graph.Section;

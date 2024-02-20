@@ -1,6 +1,6 @@
 package factorio.train.analyser;
 
-import factorio.train.analyser.Decoder.Decoder;
+import factorio.train.analyser.decoder.Decoder;
 import factorio.train.analyser.jsonmodels.Entity;
 import factorio.train.analyser.jsonmodels.Json;
 import factorio.train.analyser.jsonmodels.JsonBuilder;
