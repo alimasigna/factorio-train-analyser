@@ -3,12 +3,20 @@
  */
 package factorio.train.analyser;
 
+import java.util.ArrayList;
+
+import factorio.train.analyser.analyser.Deadlock_Analyser;
 import factorio.train.analyser.decoder.Decoder;
 import factorio.train.analyser.graph.Graph;
+import factorio.train.analyser.graph.Node;
+import factorio.train.analyser.graph.Section;
+import factorio.train.analyser.graph.Track;
+import factorio.train.analyser.jsonmodels.Entity;
+import factorio.train.analyser.jsonmodels.Position;
 
 public class App {
 
-    private static final String blueprint = "0eNqdl1luwjAQhu8yzy6Kl3jiXKWqKhaLWgKDklAVody9IUBF6VBmeCMo/vLP4lkOMFvt4rZJuYP6AGm+yS3Urwdo0zJPV8f/uv02Qg2pi2tQkKfr41MzTSvoFaS8iF9Q6/5NQcxd6lI8nR8f9u95t57FZnjh18mXM13BdtMOZzb5+KGB4ws7KRXsh1/lpOx79QdkfkBtN6CWH93LqIVAXUAUxrIxWv+DcUyztLk2S8EiNXF+esER2JLrLX3B4i3WEFgv9h1SRiNXHYrUVeKQkOoCNyROpE4XfOed5QUGVfOplk+VX5JAuVLbJziP1Tk+FfnUkk8NfKoXJyXtSXyC81id4MoIsifwqfyom0KaS6jJ+q+lnrzDMdKOhOZORxLfErQkx4ktozmltCmNlj1sSsZLKyAy6qpBaQVkUStxTDjU8ASVGj4KaQXkqLNaWgFZVCPOSg7VPkGlOE5aAVnqSmkFZFG9dKpDf3svPcVFcVaSg5OtpHMdU18Qx5rU5wrpZMfT58S7CVZ0J3DiuQvJacHJbwfNEa8no2U3nWDY7Mbdr75aFRV8xqY9pXqlHQaDlQvWB9/33xr+qH4=";
+    private static final String blueprint = "0eNqdmN1uozAQhd/F16TyvzGvUlWrNLG6lhISAak2inj3QmjaTXa6zOEuRPjj2OPDGXwRr7tTOja57kR1EXlzqFtRPV9Em9/q9W78rzsfk6hE7tJeFKJe78erZp13oi9Errfpj6hU/1KIVHe5y2kaf704/6pP+9fUDDd8jWy7Yezb7251RRTieGiHUYd6fNRIUqYQZ1GtjOr74h+OvlOw+lRJUOyT++TIJzcI3eYmbaY7LME1bH36v/osPE8dKY6D9dAcz1wvGW/rpf3jemmCG/B5Bkpfya1nwPRFJlerL+7wBEqhkngpyKkqxdXksLkqzVYobwo5WL4npAOwfIvIAGD5jpERwHr+RlcAdoF/6N1ZLgHN64t8LFB7zfeSAmqvgXQBaq/5vtJA7TWeNXTttV0CmtcHZA9Se76TNFJ7vpM0UvsFvjJkkSJeJBJkJK6IbFGMgnuoMSUZPZTGQ1fSoWsWeISeLN6QKbKRMnhH9gPIw2mtwvyGNQFOaxa2hNOahY1wWnOwVsJpzcLiXy8srF6CpUAGTmuWPgunNQvr4LRmYT2c1ixswH1PF6lcAprXF+G05mCdhNOahVVwWrOw7GMBeUse5R4jzVNgg1uUDDRn4dAdf82HrnNccAlO3cNpflVMoRZ4iAbhXZkimymHd2U0yONdmSIbFa9wRTTo2wubU/Oetj/q0RPG3+8FRzENkzl+khBMauN6i7cA99RAUfFjAHNPNRQV/3Yxj6v6UkxHqNVfJ66FeE9NO73WSmVD1KG00fjo+/4DVWj/jg==";
 
     public String decode() {
         Matrix matrix = new Matrix(blueprint);
@@ -16,9 +24,54 @@ public class App {
         graph.getClass();
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
+        Deadlock_Analyser analyser = new Deadlock_Analyser(graph);
+        ArrayList<ArrayList<Section>> result = analyser.deadlockCheck();
         return (decodedString + "\n" + matrix);
+        //Matrix matrix_copy = matrix;
+        //return deadlockmatrix(matrix_copy, result);
     }
+/*
+    private String deadlockmatrix(Matrix matrix_blueprint, ArrayList<ArrayList<Section>> deadlocks) {
+        String result = "";
+        for (ArrayList<Section> deadlock : deadlocks) {
+            if (deadlock.size() > 1) {
+                ArrayList<Position> positions = new ArrayList<Position>();
+                for (Section section : deadlock) {
+                    for (Node node : section.getNodes()) {
+                        for (Track track : node.getTracks()) {
+                            positions.add(track.getPosition());
+                        }
+                    }
 
+                }
+                ArrayList<Entity>[][] matrix_entities = matrix_blueprint.getMatrix();
+                for (ArrayList<Entity>[] arrayLists : matrix_entities) {
+                    for (ArrayList<Entity> arrayList : arrayLists) {
+                        if (arrayList != null) {
+                            for (int i = 0; i < arrayList.size(); i++) {
+                                for (int j = 0; j < positions.size(); j++) {
+                                    if (arrayList.get(i).getPosition().getX() == positions.get(j).getX()
+                                            && arrayList.get(i).getPosition().getY() == positions.get(j).getY()) {
+                                        continue;
+                                    } else if (j == positions.size() - 1
+                                            && !(arrayList.get(i).getPosition().getX() == positions.get(j).getX())) {
+                                        arrayList.remove(i);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Matrix deadlockMatrix = new Matrix();
+                deadlockMatrix.overrideMatrix(matrix_entities);
+                System.out.println("\n" + "------" + "\n" + deadlockMatrix.toString());
+            } else {
+                System.out.println("\n" + "------" + "\n" + "no deadlock");
+            }
+        }
+        return result;
+    }
+*/
     public static void main(String[] args) {
         System.out.println(new App().decode());
     }
