@@ -5,7 +5,6 @@ import java.util.ArrayList;
 public class Section {
     private ArrayList<Node> nodes;
     private boolean isFree;
-    private boolean isEndSection;
 
     public Section(ArrayList<Node> nodes) {
         for (Node node : nodes) {
@@ -13,7 +12,6 @@ public class Section {
         }
         this.nodes = new ArrayList<>(nodes);
         this.isFree = true;
-        isEndSection = false;
     }
 
     public ArrayList<Node> getNodes() {
@@ -26,14 +24,6 @@ public class Section {
 
     public void setIsFree(boolean isFree) {
         this.isFree = isFree;
-    }
-
-    public boolean getIsEndSection() {
-        return isEndSection;
-    }
-
-    public void setIsEndSection(boolean isEndSection) {
-        this.isEndSection = isEndSection;
     }
 
     /**

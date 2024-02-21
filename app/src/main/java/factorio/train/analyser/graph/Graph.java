@@ -62,42 +62,33 @@ public class Graph {
         }
         mergeSections(tracks);
         mapTrackFieldToNodeField(tracks);
-        generateEndSections();
+        setIoFlags();
     }
 
     /**
-     * Generates end sections from the existing sections.
-     * The method iterates over each section, and for each section, it finds the end
-     * nodes. If there are any end nodes, it splits the section at the end nodes to
-     * create a new end section.
-     * The new end section is marked as an end section. If the original section
-     * still has any nodes after the split, it is added to the list of new sections.
-     * The new end section is also added to the list of new sections. If there are
-     * no end nodes, the original section is added to the list of new sections.
-     * Finally, it replaces the original sections with the new sections.
+     * Sets the input and output flags for each node in all sections of the graph.
+     * 
+     * <p>
+     * This method iterates over all sections, and for each section, it iterates
+     * over all nodes.
+     * If a node is an end node, it checks if the node has no next nodes and no
+     * dependencies.
+     * If so, it sets the node as an output node. Otherwise, it sets the node as an
+     * input node.
+     * </p>
      */
-    private void generateEndSections() {
-        ArrayList<Section> newSections = new ArrayList<>();
+    private void setIoFlags() {
         for (Section section : sections) {
-            ArrayList<Node> endNodes = new ArrayList<>();
             for (Node node : section.getNodes()) {
                 if (node.getIsEndNode()) {
-                    endNodes.add(node);
+                    if (node.getNextNodes().isEmpty() && node.getDependsOn().isEmpty()) {
+                        node.setIsOutput(true);
+                    } else {
+                        node.setIsInput(true);
+                    }
                 }
             }
-            if (!endNodes.isEmpty()) {
-                Section endSection = section.splitSection(endNodes);
-                endSection.setIsEndSection(true);
-                if (!section.getNodes().isEmpty()) {
-                    newSections.add(section);
-                }
-                newSections.add(endSection);
-            } else {
-                newSections.add(section);
-            }
-
         }
-        sections = newSections;
     }
 
     /**
@@ -212,7 +203,8 @@ public class Graph {
         if (!nextTracks.isEmpty()) {
             ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
             for (Entity signal : signals) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(LookUp.lookUpOutgoingTracks(signal, currentTrack), tracks);
+                ArrayList<Track> outGoingTracks = filterLookupsToTrack(
+                        LookUp.lookUpOutgoingTracks(signal, currentTrack), tracks);
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.setGoesTo(nextTrack);
