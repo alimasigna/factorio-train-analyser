@@ -7,10 +7,12 @@ public class Node {
     private ArrayList<Node>  nextNodes;
     private ArrayList<Node>  dependsOn;
     private ArrayList<Track> tracks;
-    private boolean isEndNode;
     private int length;
+    private boolean isOutput;
+    private boolean isInput;
 
     private boolean hasBeenMerged;
+    private boolean isEndNode;
    
     public Node () {
         nextNodes = new ArrayList<>();
@@ -18,6 +20,8 @@ public class Node {
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
+        isOutput = false;
+        isInput = false;
         length = 0;
     }
 
@@ -45,6 +49,26 @@ public class Node {
         }  
     }
 
+    public ArrayList<Node> getNextNodes() {
+        return nextNodes;
+    }
+    
+    public boolean getIsOutput() {
+        return isOutput;
+    }
+
+    public void setIsOutput(boolean isOutput) {
+        this.isOutput = isOutput;
+    }
+
+    public boolean getIsInput() {
+        return isInput;
+    }
+
+    public void setIsInput(boolean isInput) {
+        this.isInput = isInput;
+    }
+
     public void setIsEndNode(boolean isEndNode) {
         this.isEndNode = isEndNode;
     }
@@ -59,6 +83,10 @@ public class Node {
                 this.dependsOn.add(dependsOnNode);
             }
         }  
+    }
+
+    public ArrayList<Node> getDependsOn() {
+        return dependsOn;
     }
 
     public boolean getHasBeenMerged() {
