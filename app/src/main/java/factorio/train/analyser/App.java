@@ -16,7 +16,7 @@ import factorio.train.analyser.jsonmodels.Position;
 
 public class App {
 
-    private static final String blueprint = "0eNqdmN1uozAQhd/F16TyvzGvUlWrNLG6lhISAak2inj3QmjaTXa6zOEuRPjj2OPDGXwRr7tTOja57kR1EXlzqFtRPV9Em9/q9W78rzsfk6hE7tJeFKJe78erZp13oi9Errfpj6hU/1KIVHe5y2kaf704/6pP+9fUDDd8jWy7Yezb7251RRTieGiHUYd6fNRIUqYQZ1GtjOr74h+OvlOw+lRJUOyT++TIJzcI3eYmbaY7LME1bH36v/osPE8dKY6D9dAcz1wvGW/rpf3jemmCG/B5Bkpfya1nwPRFJlerL+7wBEqhkngpyKkqxdXksLkqzVYobwo5WL4npAOwfIvIAGD5jpERwHr+RlcAdoF/6N1ZLgHN64t8LFB7zfeSAmqvgXQBaq/5vtJA7TWeNXTttV0CmtcHZA9Se76TNFJ7vpM0UvsFvjJkkSJeJBJkJK6IbFGMgnuoMSUZPZTGQ1fSoWsWeISeLN6QKbKRMnhH9gPIw2mtwvyGNQFOaxa2hNOahY1wWnOwVsJpzcLiXy8srF6CpUAGTmuWPgunNQvr4LRmYT2c1ixswH1PF6lcAprXF+G05mCdhNOahVVwWrOw7GMBeUse5R4jzVNgg1uUDDRn4dAdf82HrnNccAlO3cNpflVMoRZ4iAbhXZkimymHd2U0yONdmSIbFa9wRTTo2wubU/Oetj/q0RPG3+8FRzENkzl+khBMauN6i7cA99RAUfFjAHNPNRQV/3Yxj6v6UkxHqNVfJ66FeE9NO73WSmVD1KG00fjo+/4DVWj/jg==";
+    private static final String blueprint = "0eNqV1O1qwyAUBuB7Ob9NqYnx61bKGGkrnZCYoHYsBO99JtnGSsc4/vTjPIovngXO/d1M3roIegF7GV0AfVog2Jvr+nUuzpMBDTaaAQi4blhHvrM9JALWXc0HaJpeCBgXbbRmr98G86u7D2fj84afyhBz7e0tVhtBYBpDrhrdelSWuCAwg65qlfWr9eayL9aJPKE1GlV4tMGiguJRhkYbPNqi0RaPcjRaEJRAowVBSSwqC4JSaLQgKHpEqwVJUfSfkgVR0frhj1dffeA5KXb4vqs4tI8u/8ttcK48FroM6bb/ubl7bf1N/2qHBN6ND/tDScqEqoVkquGKp/QJJ2Wz2A==";
 
     public String decode() {
         Matrix matrix = new Matrix(blueprint);
@@ -25,7 +25,7 @@ public class App {
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
         Deadlock_Analyser analyser = new Deadlock_Analyser(graph);
-        ArrayList<ArrayList<Section>> result = analyser.deadlockCheck();
+        ArrayList<ArrayList<Node>> result = analyser.deadlockCheck();
         return (decodedString + "\n" + matrix);
         //Matrix matrix_copy = matrix;
         //return deadlockmatrix(matrix_copy, result);

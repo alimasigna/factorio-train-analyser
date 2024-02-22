@@ -6,29 +6,27 @@ import factorio.train.analyser.graph.Section;
 import factorio.train.analyser.graph.Node;
 
 public class Deadlock_Analyser {
-    
+
     private Graph graph;
 
     public Deadlock_Analyser(Graph graph) {
         this.graph = graph;
     }
 
-    public ArrayList<ArrayList<Section>> deadlockCheck() {
-        ArrayList<ArrayList<Section>> result = DeadlockDetection(graph.getSections());
+    public ArrayList<ArrayList<Node>> deadlockCheck() {
+        ArrayList<ArrayList<Node>> result = DeadlockDetection(graph.getSections());
         return result;
     }
 
-    private ArrayList<ArrayList<Section>> DeadlockDetection(ArrayList<Section> sections){
+    private ArrayList<ArrayList<Node>> DeadlockDetection(ArrayList<Section> sections) {
 
-        ArrayList<ArrayList<Section>> result = new ArrayList<ArrayList<Section>>();
+        ArrayList<ArrayList<Node>> result = new ArrayList<ArrayList<Node>>();
         for (Section section : sections) {
-            
-            if(section.getIsEndSection()){
-
-                ArrayList<Node> endNodes = section.getNodes();
-                for (Node endnode : endNodes) {
-                    ArrayList<Section> path = new ArrayList<Section>();
-                    result.add(recursion(endnode, path));
+            for (Node node : section.getNodes()) {
+                if (node.getIsInput()) {
+                    ArrayList<Node> path = new ArrayList<Node>();
+                    ArrayList<Node> deadlockPath = recursion(node, path);
+                    result.add(deadlockPath);
                     for (Section sectionFree : sections) {
                         sectionFree.setIsFree(true);
                     }
@@ -38,30 +36,27 @@ public class Deadlock_Analyser {
         return result;
     }
 
-    private ArrayList<Section> recursion(Node node, ArrayList<Section> pathYet){
+    private ArrayList<Node> recursion(Node node, ArrayList<Node> pathYet) {
 
         Section nodeSection = node.getSection();
 
-        for (Node nodeInSection : nodeSection.getNodes()) {
-
-            nodeSection.setIsFree(false);
-            pathYet.add(nodeSection);
-            ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
-
-            for (Node nextNode : nextNodes) {
-                
-                if(nextNode.getSection().getIsEndSection()){
-                    nodeSection.setIsFree(true);
-                    pathYet.remove(nodeSection);
-                    continue;
-                }else if(!nextNode.getSection().getIsFree()){
-
-                    return pathYet;
-                }
-                else{
-                    return recursion(nextNode, pathYet);
+        if (nodeSection.getIsFree()) {
+            for (int i = 0; i < nodeSection.getNodes().size(); i++) {
+                Node nodeInSection = nodeSection.getNodes().get(i);
+                nodeSection.setIsFree(false);
+                pathYet.add(nodeInSection);
+                ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
+                for(Node nextNode : nextNodes) {
+                    if(nextNode.getIsOutput()) {
+                        nodeSection.setIsFree(true);
+                        pathYet.remove(nodeInSection);
+                    }else{
+                        recursion(nextNode, pathYet);
+                    }
                 }
             }
+        } else {
+            return pathYet;
         }
         return pathYet;
     }
