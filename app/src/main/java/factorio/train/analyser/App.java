@@ -6,6 +6,7 @@ package factorio.train.analyser;
 import java.util.ArrayList;
 
 import factorio.train.analyser.analyser.Deadlock_Analyser;
+import factorio.train.analyser.analyser.Result;
 import factorio.train.analyser.decoder.Decoder;
 import factorio.train.analyser.graph.Graph;
 import factorio.train.analyser.graph.Node;
@@ -16,7 +17,7 @@ import factorio.train.analyser.jsonmodels.Position;
 
 public class App {
 
-    private static final String blueprint = "0eNqV1O1qwyAUBuB7Ob9NqYnx61bKGGkrnZCYoHYsBO99JtnGSsc4/vTjPIovngXO/d1M3roIegF7GV0AfVog2Jvr+nUuzpMBDTaaAQi4blhHvrM9JALWXc0HaJpeCBgXbbRmr98G86u7D2fj84afyhBz7e0tVhtBYBpDrhrdelSWuCAwg65qlfWr9eayL9aJPKE1GlV4tMGiguJRhkYbPNqi0RaPcjRaEJRAowVBSSwqC4JSaLQgKHpEqwVJUfSfkgVR0frhj1dffeA5KXb4vqs4tI8u/8ttcK48FroM6bb/ubl7bf1N/2qHBN6ND/tDScqEqoVkquGKp/QJJ2Wz2A==";
+    private static final String blueprint = "0eNqdl1luwjAQhu8yzy6Kl3jiXKWqKhaLWgKDklAVody9IUBF6VBmeCMo/vLP4lkOMFvt4rZJuYP6AGm+yS3Urwdo0zJPV8f/uv02Qg2pi2tQkKfr41MzTSvoFaS8iF9Q6/5NQcxd6lI8nR8f9u95t57FZnjh18mXM13BdtMOZzb5+KGB4ws7KRXsh1/lpOx79QdkfkBtN6CWH93LqIVAXUAUxrIxWv+DcUyztLk2S8EiNXF+esER2JLrLX3B4i3WEFgv9h1SRiNXHYrUVeKQkOoCNyROpE4XfOed5QUGVfOplk+VX5JAuVLbJziP1Tk+FfnUkk8NfKoXJyXtSXyC81id4MoIsifwqfyom0KaS6jJ+q+lnrzDMdKOhOZORxLfErQkx4ktozmltCmNlj1sSsZLKyAy6qpBaQVkUStxTDjU8ASVGj4KaQXkqLNaWgFZVCPOSg7VPkGlOE5aAVnqSmkFZFG9dKpDf3svPcVFcVaSg5OtpHMdU18Qx5rU5wrpZMfT58S7CVZ0J3DiuQvJacHJbwfNEa8no2U3nWDY7Mbdr75aFRV8xqY9pXqlHQaDlQvWB9/33xr+qH4=";
 
     public String decode() {
         Matrix matrix = new Matrix(blueprint);
@@ -25,7 +26,7 @@ public class App {
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
         Deadlock_Analyser analyser = new Deadlock_Analyser(graph);
-        ArrayList<ArrayList<Node>> result = analyser.deadlockCheck();
+        ArrayList<Result> result = analyser.deadlockCheck();
         return (decodedString + "\n" + matrix);
         //Matrix matrix_copy = matrix;
         //return deadlockmatrix(matrix_copy, result);

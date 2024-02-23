@@ -13,19 +13,19 @@ public class Deadlock_Analyser {
         this.graph = graph;
     }
 
-    public ArrayList<ArrayList<Node>> deadlockCheck() {
-        ArrayList<ArrayList<Node>> result = DeadlockDetection(graph.getSections());
+    public ArrayList<Result> deadlockCheck() {
+        ArrayList<Result> result = DeadlockDetection(graph.getSections());
         return result;
     }
 
-    private ArrayList<ArrayList<Node>> DeadlockDetection(ArrayList<Section> sections) {
+    private ArrayList<Result> DeadlockDetection(ArrayList<Section> sections) {
 
-        ArrayList<ArrayList<Node>> result = new ArrayList<ArrayList<Node>>();
+        ArrayList<Result> result = new ArrayList<Result>();
         for (Section section : sections) {
             for (Node node : section.getNodes()) {
                 if (node.getIsInput()) {
-                    ArrayList<Node> path = new ArrayList<Node>();
-                    ArrayList<Node> deadlockPath = recursion(node, path);
+                    Result resultOnePath = new Result();
+                    Result deadlockPath = recursion(node, resultOnePath);
                     result.add(deadlockPath);
                     for (Section sectionFree : sections) {
                         sectionFree.setIsFree(true);
@@ -36,7 +36,7 @@ public class Deadlock_Analyser {
         return result;
     }
 
-    private ArrayList<Node> recursion(Node node, ArrayList<Node> pathYet) {
+    private Result recursion(Node node, Result resultYet) {
 
         Section nodeSection = node.getSection();
 
@@ -44,20 +44,21 @@ public class Deadlock_Analyser {
             for (int i = 0; i < nodeSection.getNodes().size(); i++) {
                 Node nodeInSection = nodeSection.getNodes().get(i);
                 nodeSection.setIsFree(false);
-                pathYet.add(nodeInSection);
+                resultYet.deadlockPath.add(nodeInSection);
                 ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
                 for(Node nextNode : nextNodes) {
                     if(nextNode.getIsOutput()) {
                         nodeSection.setIsFree(true);
-                        pathYet.remove(nodeInSection);
+                        resultYet.deadlockPath.remove(nodeInSection);
                     }else{
-                        recursion(nextNode, pathYet);
+                        recursion(nextNode, resultYet);
                     }
                 }
             }
         } else {
-            return pathYet;
+            resultYet.result = "deadlock found";
+            return resultYet;
         }
-        return pathYet;
+        return resultYet;
     }
 }
