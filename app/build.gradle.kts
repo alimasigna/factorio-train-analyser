@@ -8,6 +8,7 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
 repositories {
@@ -20,6 +21,10 @@ tasks.jar {
     manifest {
         attributes["Main-Class"] = "factorio.train.analyser.App" // Anpassen Sie 'com.meinprojekt.Main' entsprechend Ihrer Hauptklasse
     }
+}
+javafx {
+    version = "17"
+    modules("javafx.controls", "javafx.fxml")
 }
 
 dependencies {
