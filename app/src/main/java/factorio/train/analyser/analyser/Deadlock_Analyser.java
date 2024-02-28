@@ -43,7 +43,15 @@ public class Deadlock_Analyser {
         if (nodeSection.getIsFree()) {
             for (int i = 0; i < nodeSection.getNodes().size(); i++) {
                 Node nodeInSection = nodeSection.getNodes().get(i);
-                nodeSection.setIsFree(false);
+                if(inList(resultYet.chainSignalProtected, nodeInSection)){
+                    continue;
+                }
+                else if(nodeInSection.getDependsOn().size() > 0) {
+                    resultYet.chainSignalProtected.add(nodeInSection);
+                }
+                else{
+                    nodeSection.setIsFree(false);
+                }
                 resultYet.deadlockPath.add(nodeInSection);
                 ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
                 for(Node nextNode : nextNodes) {
@@ -60,5 +68,14 @@ public class Deadlock_Analyser {
             return resultYet;
         }
         return resultYet;
+    }
+
+    private boolean inList(ArrayList<Node> list, Node node) {
+        for (Node nodeInList : list) {
+            if (nodeInList.equals(node)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
