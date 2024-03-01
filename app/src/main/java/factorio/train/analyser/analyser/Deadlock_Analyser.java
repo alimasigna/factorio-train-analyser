@@ -44,10 +44,15 @@ public class Deadlock_Analyser {
             for (int i = 0; i < nodeSection.getNodes().size(); i++) {
                 Node nodeInSection = nodeSection.getNodes().get(i);
                 if(inList(resultYet.chainSignalProtected, nodeInSection)){
+                    resultYet.chainSignalsVisited.add(nodeInSection);
+                }
+                if(inList(resultYet.chainSignalsVisited, nodeInSection)){
                     continue;
                 }
                 else if(nodeInSection.getDependsOn().size() > 0) {
-                    resultYet.chainSignalProtected.add(nodeInSection);
+                    for(Node nodeProt : nodeInSection.getDependsOn()){
+                        resultYet.chainSignalProtected.add(nodeProt);
+                    }
                 }
                 else{
                     nodeSection.setIsFree(false);
