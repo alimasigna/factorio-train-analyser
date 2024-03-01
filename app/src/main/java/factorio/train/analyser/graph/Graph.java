@@ -81,7 +81,7 @@ public class Graph {
         for (Section section : sections) {
             for (Node node : section.getNodes()) {
                 if (node.getIsEndNode()) {
-                    if (node.getNextNodes().isEmpty() && node.getDependsOn().isEmpty()) {
+                    if (node.getNextNodes().isEmpty()) {
                         node.setIsOutput(true);
                     } else {
                         //check if next nodes are also referencing the current node, "should" be null safe lel
@@ -133,11 +133,7 @@ public class Graph {
                     }
 
                     for (Node parentNode : parentNodes) {
-                        parentNode.setNextNodes(referencedNextNodes);
-                        
-                        for (Track outDependendTrack : outDependendTracks) {
-                            parentNode.setDependsOn(outDependendTrack.getNodes());
-                        }
+                        parentNode.setNextNodes(referencedNextNodes, !outDependendTracks.isEmpty());
                     }
                 }
             }
@@ -217,12 +213,14 @@ public class Graph {
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.setGoesTo(nextTrack);
+                        //TODO this is unnecessary, we should only set a flag to true
                         if (signal.getName().equals("rail-chain-signal"))
                             currentTrack.setDependsOn(nextTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.setGoesTo(currentTrack);
+                        //TODO this is unnecessary, we should only set a flag to true
                         if (signal.getName().equals("rail-chain-signal"))
                             nextTrack.setDependsOn(currentTrack);
                     }

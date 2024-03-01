@@ -1,11 +1,14 @@
 package factorio.train.analyser.graph;
 
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 public class Node {
     private Section section;
+    private Dictionary<ArrayList<Node>, Boolean> dependsOnDict;
     private ArrayList<ArrayList<Node>> nextNodes;
-    private ArrayList<Node> dependsOn;
+    //private ArrayList<Boolean> dependsOn;
     private ArrayList<Track> tracks;
     private int length;
     private boolean isOutput;
@@ -15,8 +18,8 @@ public class Node {
     private boolean isEndNode;
 
     public Node() {
-        nextNodes = new ArrayList<>();
-        dependsOn = new ArrayList<>();
+        nextNodes = new ArrayList<>(2);
+        dependsOnDict = new Hashtable<ArrayList<Node>, Boolean>();
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
@@ -41,7 +44,7 @@ public class Node {
         return length;
     }
 
-    public void setNextNodes(ArrayList<Node> nextNodes) {
+    public void setNextNodes(ArrayList<Node> nextNodes, boolean dependsOn) {
         ArrayList<Node> groupedNextNodes = new ArrayList<>();
         // every node can have up to 2 possible groups of nextNodes
         for (Node nextNode : nextNodes) {
@@ -49,7 +52,16 @@ public class Node {
         }
         if (!this.nextNodes.contains(groupedNextNodes)) {
             this.nextNodes.add(groupedNextNodes);
+            setDependsOnDict(groupedNextNodes, dependsOn);
         }
+    }
+
+    public Dictionary<ArrayList<Node>, Boolean> getDependsOnDict() {
+        return dependsOnDict;
+    }
+
+    private void setDependsOnDict(ArrayList<Node> nextNodes, boolean dependsOn) {
+        this.dependsOnDict.put(nextNodes, dependsOn);
     }
 
     public ArrayList<ArrayList<Node>> getNextNodes() {
@@ -90,18 +102,6 @@ public class Node {
 
     public boolean getIsEndNode() {
         return this.isEndNode;
-    }
-
-    public void setDependsOn(ArrayList<Node> dependsOnNodes) {
-        for (Node dependsOnNode : dependsOnNodes) {
-            if (!this.dependsOn.contains(dependsOnNode)) {
-                this.dependsOn.add(dependsOnNode);
-            }
-        }
-    }
-
-    public ArrayList<Node> getDependsOn() {
-        return dependsOn;
     }
 
     public boolean getHasBeenMerged() {
