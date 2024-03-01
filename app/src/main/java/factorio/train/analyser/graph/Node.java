@@ -1,11 +1,14 @@
 package factorio.train.analyser.graph;
 
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 public class Node {
     private Section section;
-    private ArrayList<Node>  nextNodes;
-    private ArrayList<Node>  dependsOn;
+    private Dictionary<ArrayList<Node>, Boolean> dependsOnDict;
+    private ArrayList<ArrayList<Node>> nextNodes;
+    //private ArrayList<Boolean> dependsOn;
     private ArrayList<Track> tracks;
     private int length;
     private boolean isOutput;
@@ -13,10 +16,10 @@ public class Node {
 
     private boolean hasBeenMerged;
     private boolean isEndNode;
-   
-    public Node () {
-        nextNodes = new ArrayList<>();
-        dependsOn = new ArrayList<>();
+
+    public Node() {
+        nextNodes = new ArrayList<>(2);
+        dependsOnDict = new Hashtable<ArrayList<Node>, Boolean>();
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
@@ -25,13 +28,13 @@ public class Node {
         length = 0;
     }
 
-    public void addTrack (Track track) {
+    public void addTrack(Track track) {
         this.tracks.add(track);
         this.length += track.getLength();
     }
 
-    public void addTrack (ArrayList<Track> tracks) {
-        for(Track track : tracks) {
+    public void addTrack(ArrayList<Track> tracks) {
+        for (Track track : tracks) {
             addTrack(track);
             track.addNode(this);
         }
@@ -41,18 +44,42 @@ public class Node {
         return length;
     }
 
-    public void setNextNodes(ArrayList<Node> nextNodes) {
-        for(Node nextNode : nextNodes) {
-            if(!this.nextNodes.contains(nextNode)){
-                this.nextNodes.add(nextNode);
-            }
-        }  
+    public void setNextNodes(ArrayList<Node> nextNodes, boolean dependsOn) {
+        ArrayList<Node> groupedNextNodes = new ArrayList<>();
+        // every node can have up to 2 possible groups of nextNodes
+        for (Node nextNode : nextNodes) {
+            groupedNextNodes.add(nextNode);
+        }
+        if (!this.nextNodes.contains(groupedNextNodes)) {
+            this.nextNodes.add(groupedNextNodes);
+            setDependsOnDict(groupedNextNodes, dependsOn);
+        }
     }
 
-    public ArrayList<Node> getNextNodes() {
+    public Dictionary<ArrayList<Node>, Boolean> getDependsOnDict() {
+        return dependsOnDict;
+    }
+
+    private void setDependsOnDict(ArrayList<Node> nextNodes, boolean dependsOn) {
+        this.dependsOnDict.put(nextNodes, dependsOn);
+    }
+
+    public ArrayList<ArrayList<Node>> getNextNodes() {
         return nextNodes;
     }
-    
+
+    public ArrayList<Node> getNextNodesMerged() {
+        ArrayList<Node> mergedNextNodes = new ArrayList<>();
+        for (ArrayList<Node> groupOfNextNodes : nextNodes) {
+            for (Node nextNode : groupOfNextNodes) {
+                if (!mergedNextNodes.contains(nextNode)) {
+                    mergedNextNodes.add(nextNode);
+                }
+            }
+        }
+        return mergedNextNodes;
+    }
+
     public boolean getIsOutput() {
         return isOutput;
     }
@@ -75,18 +102,6 @@ public class Node {
 
     public boolean getIsEndNode() {
         return this.isEndNode;
-    }
-
-    public void setDependsOn(ArrayList<Node> dependsOnNodes) {
-        for(Node dependsOnNode : dependsOnNodes) {
-            if(!this.dependsOn.contains(dependsOnNode)){
-                this.dependsOn.add(dependsOnNode);
-            }
-        }  
-    }
-
-    public ArrayList<Node> getDependsOn() {
-        return dependsOn;
     }
 
     public boolean getHasBeenMerged() {
@@ -117,8 +132,9 @@ public class Node {
         b.removeTracks();
         return merged;
     }
-    private void removeTracks(){
-        for(Track track : tracks) {
+
+    private void removeTracks() {
+        for (Track track : tracks) {
             track.removeNode(this);
             this.length -= track.getLength();
         }

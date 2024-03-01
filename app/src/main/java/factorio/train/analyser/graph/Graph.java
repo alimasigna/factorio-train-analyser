@@ -81,9 +81,12 @@ public class Graph {
         for (Section section : sections) {
             for (Node node : section.getNodes()) {
                 if (node.getIsEndNode()) {
-                    if (node.getNextNodes().isEmpty() && node.getDependsOn().isEmpty()) {
+                    if (node.getNextNodes().isEmpty()) {
                         node.setIsOutput(true);
                     } else {
+                        //check if next nodes are also referencing the current node, "should" be null safe lel
+                        if(node.getNextNodes().get(0).get(0).getNextNodesMerged().contains(node))
+                            node.setIsOutput(true);
                         node.setIsInput(true);
                     }
                 }
@@ -122,13 +125,15 @@ public class Graph {
                     ArrayList<Node> parentNodes = track.getNodes();
                     ArrayList<Track> outGoingTracks = track.getGoesTo();
                     ArrayList<Track> outDependendTracks = track.getDependsOn();
+                    
+                    //get all nodes the track is referencing
+                    ArrayList<Node> referencedNextNodes = new ArrayList<>();
+                    for(Track outGoingTrack : outGoingTracks) {
+                        referencedNextNodes.addAll(outGoingTrack.getNodes());
+                    }
+
                     for (Node parentNode : parentNodes) {
-                        for (Track outGoingTrack : outGoingTracks) {
-                            parentNode.setNextNodes(outGoingTrack.getNodes());
-                        }
-                        for (Track outDependendTrack : outDependendTracks) {
-                            parentNode.setDependsOn(outDependendTrack.getNodes());
-                        }
+                        parentNode.setNextNodes(referencedNextNodes, !outDependendTracks.isEmpty());
                     }
                 }
             }
@@ -208,12 +213,14 @@ public class Graph {
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.setGoesTo(nextTrack);
+                        //TODO this is unnecessary, we should only set a flag to true
                         if (signal.getName().equals("rail-chain-signal"))
                             currentTrack.setDependsOn(nextTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.setGoesTo(currentTrack);
+                        //TODO this is unnecessary, we should only set a flag to true
                         if (signal.getName().equals("rail-chain-signal"))
                             nextTrack.setDependsOn(currentTrack);
                     }
