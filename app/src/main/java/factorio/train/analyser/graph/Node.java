@@ -4,8 +4,8 @@ import java.util.ArrayList;
 
 public class Node {
     private Section section;
-    private ArrayList<Node>  nextNodes;
-    private ArrayList<Node>  dependsOn;
+    private ArrayList<ArrayList<Node>> nextNodes;
+    private ArrayList<Node> dependsOn;
     private ArrayList<Track> tracks;
     private int length;
     private boolean isOutput;
@@ -13,8 +13,8 @@ public class Node {
 
     private boolean hasBeenMerged;
     private boolean isEndNode;
-   
-    public Node () {
+
+    public Node() {
         nextNodes = new ArrayList<>();
         dependsOn = new ArrayList<>();
         tracks = new ArrayList<>();
@@ -25,13 +25,13 @@ public class Node {
         length = 0;
     }
 
-    public void addTrack (Track track) {
+    public void addTrack(Track track) {
         this.tracks.add(track);
         this.length += track.getLength();
     }
 
-    public void addTrack (ArrayList<Track> tracks) {
-        for(Track track : tracks) {
+    public void addTrack(ArrayList<Track> tracks) {
+        for (Track track : tracks) {
             addTrack(track);
             track.addNode(this);
         }
@@ -42,17 +42,32 @@ public class Node {
     }
 
     public void setNextNodes(ArrayList<Node> nextNodes) {
-        for(Node nextNode : nextNodes) {
-            if(!this.nextNodes.contains(nextNode)){
-                this.nextNodes.add(nextNode);
-            }
-        }  
+        ArrayList<Node> groupedNextNodes = new ArrayList<>();
+        // every node can have up to 2 possible groups of nextNodes
+        for (Node nextNode : nextNodes) {
+            groupedNextNodes.add(nextNode);
+        }
+        if (!this.nextNodes.contains(groupedNextNodes)) {
+            this.nextNodes.add(groupedNextNodes);
+        }
     }
 
-    public ArrayList<Node> getNextNodes() {
+    public ArrayList<ArrayList<Node>> getNextNodes() {
         return nextNodes;
     }
-    
+
+    public ArrayList<Node> getNextNodesMerged() {
+        ArrayList<Node> mergedNextNodes = new ArrayList<>();
+        for (ArrayList<Node> groupOfNextNodes : nextNodes) {
+            for (Node nextNode : groupOfNextNodes) {
+                if (!mergedNextNodes.contains(nextNode)) {
+                    mergedNextNodes.add(nextNode);
+                }
+            }
+        }
+        return mergedNextNodes;
+    }
+
     public boolean getIsOutput() {
         return isOutput;
     }
@@ -78,11 +93,11 @@ public class Node {
     }
 
     public void setDependsOn(ArrayList<Node> dependsOnNodes) {
-        for(Node dependsOnNode : dependsOnNodes) {
-            if(!this.dependsOn.contains(dependsOnNode)){
+        for (Node dependsOnNode : dependsOnNodes) {
+            if (!this.dependsOn.contains(dependsOnNode)) {
                 this.dependsOn.add(dependsOnNode);
             }
-        }  
+        }
     }
 
     public ArrayList<Node> getDependsOn() {
@@ -117,8 +132,9 @@ public class Node {
         b.removeTracks();
         return merged;
     }
-    private void removeTracks(){
-        for(Track track : tracks) {
+
+    private void removeTracks() {
+        for (Track track : tracks) {
             track.removeNode(this);
             this.length -= track.getLength();
         }

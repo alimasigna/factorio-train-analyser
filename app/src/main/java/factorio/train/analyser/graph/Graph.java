@@ -84,6 +84,9 @@ public class Graph {
                     if (node.getNextNodes().isEmpty() && node.getDependsOn().isEmpty()) {
                         node.setIsOutput(true);
                     } else {
+                        //check if next nodes are also referencing the current node, "should" be null safe lel
+                        if(node.getNextNodes().get(0).get(0).getNextNodesMerged().contains(node))
+                            node.setIsOutput(true);
                         node.setIsInput(true);
                     }
                 }
@@ -122,10 +125,16 @@ public class Graph {
                     ArrayList<Node> parentNodes = track.getNodes();
                     ArrayList<Track> outGoingTracks = track.getGoesTo();
                     ArrayList<Track> outDependendTracks = track.getDependsOn();
+                    
+                    //get all nodes the track is referencing
+                    ArrayList<Node> referencedNextNodes = new ArrayList<>();
+                    for(Track outGoingTrack : outGoingTracks) {
+                        referencedNextNodes.addAll(outGoingTrack.getNodes());
+                    }
+
                     for (Node parentNode : parentNodes) {
-                        for (Track outGoingTrack : outGoingTracks) {
-                            parentNode.setNextNodes(outGoingTrack.getNodes());
-                        }
+                        parentNode.setNextNodes(referencedNextNodes);
+                        
                         for (Track outDependendTrack : outDependendTracks) {
                             parentNode.setDependsOn(outDependendTrack.getNodes());
                         }
