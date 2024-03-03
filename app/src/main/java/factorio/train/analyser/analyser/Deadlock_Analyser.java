@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import factorio.train.analyser.graph.Graph;
 import factorio.train.analyser.graph.Section;
 import factorio.train.analyser.graph.Node;
+import java.util.Map.Entry;
 
 public class Deadlock_Analyser {
 
@@ -41,29 +42,44 @@ public class Deadlock_Analyser {
         Section nodeSection = node.getSection();
 
         if (nodeSection.getIsFree()) {
-            for (int i = 0; i < nodeSection.getNodes().size(); i++) {
-                Node nodeInSection = nodeSection.getNodes().get(i);
-                if(inList(resultYet.chainSignalProtected, nodeInSection)){
-                    resultYet.chainSignalsVisited.add(nodeInSection);
-                }
-                if(inList(resultYet.chainSignalsVisited, nodeInSection)){
+            for (Node nodeInSection : nodeSection.getNodes()) {
+
+                if (nodeInSection.getIsOutput() && !nodeInSection.getIsInput()) {
                     continue;
                 }
-                else if(nodeInSection.getDependsOn().size() > 0) {
-                    for(Node nodeProt : nodeInSection.getDependsOn()){
-                        resultYet.chainSignalProtected.add(nodeProt);
+                boolean alreadyHere = false;
+                for (ArrayList<Node> visitedNode : resultYet.chainSignalsVisited) {
+                    if (inList(visitedNode, nodeInSection)) {
+                        alreadyHere = true;
                     }
                 }
-                else{
+                if (alreadyHere) {
+                    continue;
+                }
+
+                if (!nodeInSection.getIsOutput() || nodeInSection.getIsOutput() && nodeInSection.getIsInput()) {
                     nodeSection.setIsFree(false);
                 }
-                resultYet.deadlockPath.add(nodeInSection);
-                ArrayList<Node> nextNodes = nodeInSection.getNextNodes();
-                for(Node nextNode : nextNodes) {
-                    if(nextNode.getIsOutput()) {
+
+                for (ArrayList<Node> protectedNode : resultYet.chainSignalProtected) {
+                    if (inList(protectedNode, nodeInSection)) {
+                        resultYet.chainSignalsVisited.add(protectedNode);
                         nodeSection.setIsFree(true);
-                        resultYet.deadlockPath.remove(nodeInSection);
-                    }else{
+                    }
+                }
+
+                resultYet.deadlockPath.add(nodeInSection);
+
+                for (Entry<ArrayList<Node>, Boolean> map : nodeInSection.getDependsOnDict().entrySet()) {
+                    boolean dependsOn = map.getValue();
+                    if (dependsOn) {
+                        ArrayList<Node> nextNodes = map.getKey();
+                        resultYet.chainSignalProtected.add(nextNodes);
+                    }
+                }
+
+                for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) {
+                    for (Node nextNode : nextNodes) {
                         recursion(nextNode, resultYet);
                     }
                 }
