@@ -2,7 +2,6 @@ package factorio.train.analyser.analyser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
 import factorio.train.analyser.graph.Graph;
 import factorio.train.analyser.graph.Section;
 import factorio.train.analyser.graph.Node;
@@ -12,16 +11,22 @@ public class Deadlock_Analyser {
 
     private Graph graph;
 
-    public Deadlock_Analyser(Graph graph) {
+    public Deadlock_Analyser() {}
+
+    public void setGraph(Graph graph) {
         this.graph = graph;
     }
 
     public ArrayList<Result> deadlockCheck() {
-        ArrayList<Result> result = DeadlockDetection(graph.getSections());
-        return result;
+        if(graph != null){
+            ArrayList<Result> result = deadlockDetection(graph.getSections());
+            return result;
+        }else{
+            return null;
+        }
     }
 
-    private ArrayList<Result> DeadlockDetection(ArrayList<Section> sections) {
+    private ArrayList<Result> deadlockDetection(ArrayList<Section> sections) {
 
         ArrayList<Result> result = new ArrayList<Result>();
         for (Section section : sections) {
@@ -43,78 +48,48 @@ public class Deadlock_Analyser {
 
         Section nodeSection = node.getSection();
 
-        if (nodeSection.getIsFree()) {
+        if (nodeSection.getIsFree()) {  //if this Section is not free, there is already a train here and we cant continue -> Deadlock
             for (Node nodeInSection : nodeSection.getNodes()) {
 
-                if (nodeInSection.getIsOutput() && !nodeInSection.getIsInput()) {
+                if (nodeInSection.getIsOutput() && !nodeInSection.getIsInput()) {   //if the node is an Output, ignore it
                     continue;
                 }
 
-                if (!nodeInSection.getIsOutput() || nodeInSection.getIsOutput() && nodeInSection.getIsInput()) {
+                if (!nodeInSection.getIsOutput() || nodeInSection.getIsOutput() && nodeInSection.getIsInput()) {    //a Train can be here by default
                     nodeSection.setIsFree(false);
                 }
+                resultYet.addToDeadlockPath(nodeInSection);
+                if (nodeInSection.getProtectedFrom().size() > 0 ) { //this Node is protected by another Node
 
-                if (nodeInSection.getNextNodes().size() > 1) {
-                    for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) {
-                        for (Node nextNode : nextNodes) {
-                            HashMap<ArrayList<Node>, Boolean> dependsOnDict = nextNode.getDependsOnDict();
-                            for (Entry<ArrayList<Node>, Boolean> map : dependsOnDict.entrySet()) {
-                                boolean dependsOn = map.getValue();
-                                if (dependsOn && map.getKey().get(0).equals(nodeInSection)) {
-                                    if (!findPair(resultYet.chainSignalProtected, nodeInSection, nextNode)) {
-                                        HashMap<Node, Node> newProtected = new HashMap<Node, Node>();
-                                        newProtected.put(nextNode, nodeInSection);
-                                        resultYet.chainSignalProtected.add(newProtected);
-                                    }
-                                    nodeSection.setIsFree(true);
-                                }
+                    for(ArrayList<Node> protectedFrom : nodeInSection.getProtectedFrom()) { //if the oredecessor is a protector, no train can be here by default, the next node must be checked
+                        for (Node protector : protectedFrom) {
+                            if(protector.equals(predecessor)) {
+                                nodeSection.setIsFree(true);
                             }
                         }
                     }
-                } else if(predecessor != null){
-                    HashMap<ArrayList<Node>, Boolean> dependsOnDict = predecessor.getDependsOnDict();
-                    for (Entry<ArrayList<Node>, Boolean> map : dependsOnDict.entrySet()) {
-                        boolean dependsOn = map.getValue();
-                        if (dependsOn && map.getKey().get(0).equals(nodeInSection)) {
-                            nodeSection.setIsFree(true);
+
+                    for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) { //we know this Node is protected by someone, if the next Node is not the precessor go for it, if it is the precessor only jump if we are an Input
+                        for (Node nextNode : nextNodes) {
+                            if ((nextNode != predecessor && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) || nextNode.equals(predecessor) && nodeInSection.getIsInput() && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection) ||!(!inList(nodeInSection.getProtectedFrom(), predecessor) && nextNode.equals(predecessor)) && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) {
+                                HashMap newPair = new HashMap<Node, Node>();
+                                newPair.put(nodeInSection, nextNode);
+                                resultYet.addToChainSignalsVisited(newPair);
+                                recursion(nextNode, resultYet, nodeInSection);
+                            }
                         }
                     }
                 }
-
-                /*
-                 * boolean alreadyHere = false;
-                 * for (ArrayList<Node> visitedNode : resultYet.chainSignalsVisited) {
-                 * if (inList(visitedNode, nodeInSection)) {
-                 * alreadyHere = true;
-                 * break;
-                 * }
-                 * }
-                 * if (alreadyHere) {
-                 * continue;
-                 * }
-                 * 
-                 * 
-                 * 
-                 * for (ArrayList<Node> protectedNode : resultYet.chainSignalProtected) {
-                 * if (inList(protectedNode, nodeInSection)) {
-                 * resultYet.chainSignalsVisited.add(protectedNode);
-                 * nodeSection.setIsFree(true);
-                 * }
-                 * }
-                 */
-                resultYet.deadlockPath.add(nodeInSection);
-
-                for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) {
-                    for (Node nextNode : nextNodes) {
-                        if (!(findPair(resultYet.chainSignalProtected, nodeInSection, nextNode)
-                                && nextNode.equals(predecessor)) && !resultYet.result) {
+                else { //no protection, just go to the next node
+                    for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) {
+                        for (Node nextNode : nextNodes) {
                             recursion(nextNode, resultYet, nodeInSection);
                         }
                     }
                 }
             }
         } else {
-            resultYet.result = true;
+            resultYet.setResult(true);
             return resultYet;
         }
         return resultYet;
@@ -126,6 +101,18 @@ public class Deadlock_Analyser {
                 Node keyNode = pair.getKey();
                 Node valueNode = pair.getValue();
                 if (valueNode.equals(protectedNode) && keyNode.equals(protectorNode)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean inList(ArrayList<ArrayList<Node>> list, Node node){
+
+        for(ArrayList<Node> nodes : list){
+            for(Node nodeInList : nodes){
+                if(nodeInList.equals(node)){
                     return true;
                 }
             }

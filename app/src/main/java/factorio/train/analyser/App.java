@@ -11,7 +11,7 @@ import factorio.train.analyser.graph.Graph;
 
 public class App {
 
-    private static final String blueprint = "0eNqdmNtuozAURf/Fz6QCG9/4laqq0hS1lhISAR1NFPHvJTAd9XLa7u2niAhWzvFhh2Uu6mH/0p761I2quai0O3aDam4vakhP3XZ//W48n1rVqDS2B1Wobnu4HvXbtFdToVL32P5VTTXdFartxjSmdr1+OTjfdy+Hh7afT/h/5TDO1z49j5sFUajTcZivOnbXn5pJtfOFOs+fdpqKLxgNY/xPGPOhj83ueZu6zb+OhYrsjV1h/kbE1XRzXsJYujkR46jmfHhrzs3NFeox9e1uPaEW4J5bOfMGj5/hWoAHeh2jtACRWwBN1ViV9JTEIquKqjKQVeJBcdXCtRVANTjV4FQiPhanWvZmgqgugypxPM6JeHV4gDwx9YhT8alrIkf41HXFphOi6gyqxMHz4/Gpazw/AZ+6xvMTiKnj+QnE1PE0BWLq9OPIGnHqkb57RI4p86zFWtlaDO1kVubw6ZA5Jk9clv5+FRdDS5oV7crQlvYNh3+SiB5hPF2PzAmsMTggQyayxoBQ65I1BohK5wGi6gyqxDGsMUDV1awxQFTLGgNEdawxQFQ6PxA1ZFAlTmSNAanOlqwxQNSKNQaIqlljgKiGNQaIWuftjp3+/ARzEp3e0TjRI6zL2x+DVfJ5kqsMeftjsMqY51Kull3KlfRsZA69f/mGo/NcaunvV5dyhu5WflNV093OnLtifRfZvHt1Wag/bT+swQzV/F+ofaijcdFN0yvo6tIa";
+    private static final String blueprint = "0eNqd1dtqhDAQBuB3meu4ZOIhJq9SSnHdsBvQKJotFfHdG7WUtrvQiZeRzDfCT2ZmODd30w/WedAz2LpzI+iXGUZ7dVWzfvNTb0CD9aYFBq5q19NQ2QYWBtZdzAdoXF4ZGOett2av3w7Tm7u3ZzOEC78qk/pWWZd89WDQd2Oo7NzaLmgZ8lPOYAKt5CkPXS52MPV+QSzsARdxeBGFp1G4EFF4FofH/Xn+jY8+8NebT7bYHmEud1b9jxZ0VJFRSUYRyWhJR1MyquhoTkaR01V6Uoh0lR4VCrIq6FlhSlfpYWFGVyPSor8rEZEW/WGJiLTksbmLnP+dMMUzvjw2eam8OjZ7ibzgx6bvUz7sv21D6h8LlcG7GcY9nBIzqYQsM5UWqliWT47VbtI=";
 
     public String decode() {
         Matrix matrix = new Matrix(blueprint);
@@ -19,7 +19,8 @@ public class App {
         graph.getClass();
         Decoder decoder = new Decoder();
         String decodedString = decoder.decode(blueprint);
-        Deadlock_Analyser analyser = new Deadlock_Analyser(graph);
+        Deadlock_Analyser analyser = new Deadlock_Analyser();
+        analyser.setGraph(graph);
         ArrayList<Result> result = analyser.deadlockCheck();
         return (decodedString + "\n" + matrix);
     }

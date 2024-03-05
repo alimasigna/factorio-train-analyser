@@ -55,6 +55,10 @@ public class Node {
         }
     }
 
+    public ArrayList<ArrayList<Node>> getProtectedFrom() {
+        return protectedFrom;
+    }
+
     public ArrayList<ArrayList<Node>> getNextNodes() {
         return nextNodes;
     }
