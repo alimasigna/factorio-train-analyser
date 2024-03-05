@@ -1,14 +1,11 @@
 package factorio.train.analyser.graph;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
 
 public class Node {
     private Section section;
-    private Dictionary<ArrayList<Node>, Boolean> dependsOnDict;
     private ArrayList<ArrayList<Node>> nextNodes;
-    //private ArrayList<Boolean> dependsOn;
+    private ArrayList<ArrayList<Node>> protectedFrom;
     private ArrayList<Track> tracks;
     private int length;
     private boolean isOutput;
@@ -19,7 +16,7 @@ public class Node {
 
     public Node() {
         nextNodes = new ArrayList<>(2);
-        dependsOnDict = new Hashtable<ArrayList<Node>, Boolean>();
+        protectedFrom = new ArrayList<>(2);
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
@@ -44,24 +41,18 @@ public class Node {
         return length;
     }
 
-    public void setNextNodes(ArrayList<Node> nextNodes, boolean dependsOn) {
-        ArrayList<Node> groupedNextNodes = new ArrayList<>();
+    public void setNextNodes(ArrayList<Node> nextNodes) {
         // every node can have up to 2 possible groups of nextNodes
-        for (Node nextNode : nextNodes) {
-            groupedNextNodes.add(nextNode);
-        }
-        if (!this.nextNodes.contains(groupedNextNodes)) {
-            this.nextNodes.add(groupedNextNodes);
-            setDependsOnDict(groupedNextNodes, dependsOn);
+        if (!this.nextNodes.contains(nextNodes)) {
+            this.nextNodes.add(nextNodes);
         }
     }
 
-    public Dictionary<ArrayList<Node>, Boolean> getDependsOnDict() {
-        return dependsOnDict;
-    }
-
-    private void setDependsOnDict(ArrayList<Node> nextNodes, boolean dependsOn) {
-        this.dependsOnDict.put(nextNodes, dependsOn);
+    public void setProtectedFrom(ArrayList<Node> protectedFrom) {
+        // every node can have up to 2 possible groups from where it is protected from
+        if (!this.protectedFrom.contains(protectedFrom)) {
+            this.protectedFrom.add(protectedFrom);
+        }
     }
 
     public ArrayList<ArrayList<Node>> getNextNodes() {
