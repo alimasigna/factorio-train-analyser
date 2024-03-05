@@ -203,7 +203,7 @@ public class Graph {
      * signals, it checks if the outgoing tracks from the signal contain the first
      * next track.
      * If they do, it sets each next track as a destination of the current track
-     * and, if the signal is a rail-chain-signal, as a dependency of the current
+     * and. If the signal is a rail-chain-signal, it sets the protectedFrom field of the
      * track.
      * If they don't, it sets the current track as a destination and, if the signal
      * is a rail-chain-signal, as a dependency of each next track.
