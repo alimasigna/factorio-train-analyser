@@ -59,10 +59,6 @@ public class Matrix {
         return matrix;
     }
 
-    public void overrideMatrix(ArrayList<Entity>[][] matrix) {
-        this.matrix = matrix;
-    }
-
     /** This will initialize the private matrix field from the Json field.
      * */
     private void setMatrix() {
