@@ -119,21 +119,29 @@ public class Graph {
                         }
                     }
 
-                    if (track.getGoesTo().isEmpty() && track.getDependsOn().isEmpty())
+                    if (track.getGoesTo().isEmpty() && track.getProtectedFrom().isEmpty())
                         continue;
 
                     ArrayList<Node> parentNodes = track.getNodes();
                     ArrayList<Track> outGoingTracks = track.getGoesTo();
-                    ArrayList<Track> outDependendTracks = track.getDependsOn();
+                    ArrayList<Track> protectedFromTracks = track.getProtectedFrom();
                     
                     //get all nodes the track is referencing
                     ArrayList<Node> referencedNextNodes = new ArrayList<>();
                     for(Track outGoingTrack : outGoingTracks) {
                         referencedNextNodes.addAll(outGoingTrack.getNodes());
                     }
+                    ArrayList<Node> referencedProtectedFromNodes = new ArrayList<>();
+                    for(Track protectedFromTrack : protectedFromTracks) {
+                        referencedProtectedFromNodes.addAll(protectedFromTrack.getNodes());
+                    }
 
+                    //setting the fields
                     for (Node parentNode : parentNodes) {
-                        parentNode.setNextNodes(referencedNextNodes, !outDependendTracks.isEmpty());
+                        if(!referencedNextNodes.isEmpty())
+                            parentNode.setNextNodes(referencedNextNodes);
+                        if(!referencedProtectedFromNodes.isEmpty())
+                            parentNode.setProtectedFrom(referencedProtectedFromNodes);
                     }
                 }
             }
@@ -195,7 +203,7 @@ public class Graph {
      * signals, it checks if the outgoing tracks from the signal contain the first
      * next track.
      * If they do, it sets each next track as a destination of the current track
-     * and, if the signal is a rail-chain-signal, as a dependency of the current
+     * and. If the signal is a rail-chain-signal, it sets the protectedFrom field of the
      * track.
      * If they don't, it sets the current track as a destination and, if the signal
      * is a rail-chain-signal, as a dependency of each next track.
@@ -213,16 +221,16 @@ public class Graph {
                 if (outGoingTracks.contains(nextTracks.get(0))) {
                     for (Track nextTrack : nextTracks) {
                         currentTrack.setGoesTo(nextTrack);
-                        //TODO this is unnecessary, we should only set a flag to true
+                        //if it is a rail-chain-signal, we tell the next track that it is protected from current track
                         if (signal.getName().equals("rail-chain-signal"))
-                            currentTrack.setDependsOn(nextTrack);
+                            nextTrack.setProtectedFrom(currentTrack);
                     }
                 } else {
                     for (Track nextTrack : nextTracks) {
                         nextTrack.setGoesTo(currentTrack);
-                        //TODO this is unnecessary, we should only set a flag to true
+                        //if it is a rail-chain-signal, we tell the current track that it is protected from next track
                         if (signal.getName().equals("rail-chain-signal"))
-                            nextTrack.setDependsOn(currentTrack);
+                            currentTrack.setProtectedFrom(nextTrack);
                     }
                 }
 

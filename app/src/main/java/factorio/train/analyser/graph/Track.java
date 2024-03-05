@@ -14,14 +14,14 @@ public class Track {
     private int direction;
     private Position position;
     private ArrayList<Track> goesTo;
-    private ArrayList<Track> dependsOn;
+    private ArrayList<Track> protectedFrom;
     private String name;
 
     public Track (Node parent, Entity entity) {
         frontierNodes = new ArrayList<>();
         nodes = new ArrayList<>();
         goesTo = new ArrayList<>();
-        dependsOn = new ArrayList<>();
+        protectedFrom = new ArrayList<>();
         isEndTrack = false;
         if (parent != null) this.nodes.add(parent);
         this.length = entity.getName().equals("straight-rail") ? 1 : 3;
@@ -42,12 +42,12 @@ public class Track {
         this.length = length;
     }
 
-    public void setDependsOn(Track dependsOn) {
-        this.dependsOn.add(dependsOn);
+    public void setProtectedFrom(Track protectedFrom) {
+        this.protectedFrom.add(protectedFrom);
     }
 
-    public ArrayList<Track> getDependsOn() {
-        return dependsOn;
+    public ArrayList<Track> getProtectedFrom() {
+        return protectedFrom;
     }
 
     public void setGoesTo(Track goesTo) {
