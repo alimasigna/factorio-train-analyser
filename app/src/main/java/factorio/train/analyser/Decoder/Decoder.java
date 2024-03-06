@@ -22,7 +22,7 @@ public class Decoder {
 
             Inflater decompresser = new Inflater();
             decompresser.setInput(decodedBytes, 0, decodedBytes.length);
-            byte[] result = new byte[10000]; //TODO this number might be to small for big blueprints
+            byte[] result = new byte[100000]; //TODO this number might be to small for big blueprints
             int resultLength = decompresser.inflate(result);
             decompresser.end();
 

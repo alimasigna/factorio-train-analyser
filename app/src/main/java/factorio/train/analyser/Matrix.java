@@ -33,6 +33,8 @@ public class Matrix {
         setMatrix();
     }
 
+    public Matrix() {}
+
     /** This will initialize the private Json field with a given Json String.
      * @param encodedJson The encoded JsonString that will be parsed into a Json object.
      * */

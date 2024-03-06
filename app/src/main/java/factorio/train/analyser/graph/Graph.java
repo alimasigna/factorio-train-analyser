@@ -571,4 +571,8 @@ public class Graph {
         }
         return validLookUps;
     }
+
+    public ArrayList<Section> getSections() {
+        return sections;
+    }
 }
