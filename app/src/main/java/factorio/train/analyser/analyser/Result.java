@@ -9,12 +9,12 @@ public class Result {
     
     private ArrayList<Node> deadlockPath;
     private ArrayList<HashMap<Node, Node>> chainSignalsVisited;
-    private boolean result;
+    private boolean isDeadlock;
 
     public Result(){
         this.deadlockPath = new ArrayList<Node>();
         this.chainSignalsVisited = new ArrayList<HashMap<Node, Node>>();
-        this.result = false;
+        this.isDeadlock = false;
     }
 
     public void addToDeadlockPath(Node newNode){
@@ -33,11 +33,11 @@ public class Result {
         chainSignalsVisited.add(newPair);
     }
 
-    public void setResult(boolean result){
-        this.result = result;
+    public void setIsDeadlock(boolean result){
+        this.isDeadlock = result;
     }
 
-    public boolean getResult(){
-        return result;
+    public boolean getIsDeadlock(){
+        return isDeadlock;
     }
 }
