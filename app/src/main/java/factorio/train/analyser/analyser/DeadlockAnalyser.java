@@ -87,7 +87,7 @@ public class DeadlockAnalyser {
 
                     for (ArrayList<Node> nextNodes : nodeInSection.getNextNodes()) { //we know this Node is protected by someone, if the next Node is not the precessor go for it, if it is the precessor only jump if we are an Input
                         for (Node nextNode : nextNodes) {
-                            if ((nextNode != predecessor && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) || nextNode.equals(predecessor) && nodeInSection.getIsInput() && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection) ||(!inList(nodeInSection.getProtectedFrom(), predecessor) && !nextNode.equals(predecessor)) && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) {
+                            if ((nextNode != predecessor && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) || nextNode.equals(predecessor) && nodeInSection.getIsInput() && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection) ||(!inList(nodeInSection.getProtectedFrom(), predecessor) && nextNode.equals(predecessor)) && !findPair(resultYet.getChainSignalsVisited(), nextNode, nodeInSection)) {
                                 HashMap newPair = new HashMap<Node, Node>();
                                 newPair.put(nodeInSection, nextNode);
                                 resultYet.addToChainSignalsVisited(newPair);
