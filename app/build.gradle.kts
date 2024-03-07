@@ -15,6 +15,13 @@ repositories {
     mavenCentral()
 }
 
+tasks.jar {
+    from(configurations.runtimeClasspath.get().filter { it.name.endsWith(".jar") }.map { zipTree(it) })
+    manifest {
+        attributes["Main-Class"] = "factorio.train.analyser.App" // Anpassen Sie 'com.meinprojekt.Main' entsprechend Ihrer Hauptklasse
+    }
+}
+
 dependencies {
     // Use JUnit test framework.
     testImplementation("junit:junit:4.13.2")
