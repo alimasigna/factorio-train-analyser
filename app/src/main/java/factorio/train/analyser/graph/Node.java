@@ -13,6 +13,8 @@ public class Node {
 
     private boolean hasBeenMerged;
     private boolean isEndNode;
+    private static int numOfGeneratedNodes = 0;
+    private int id;
 
     public Node() {
         nextNodes = new ArrayList<>(2);
@@ -23,6 +25,7 @@ public class Node {
         isOutput = false;
         isInput = false;
         length = 0;
+        this.id = ++numOfGeneratedNodes;
     }
 
     public void addTrack(Track track) {
@@ -35,6 +38,10 @@ public class Node {
             addTrack(track);
             track.addNode(this);
         }
+    }
+
+    public int getId() {
+        return id;
     }
 
     public int getLength() {
