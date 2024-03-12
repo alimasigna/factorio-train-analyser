@@ -6,16 +6,24 @@ public class Section {
     private ArrayList<Node> nodes;
     private boolean isFree;
 
+    private static int numOfGeneratedSections = 0;
+    private int id;
+
     public Section(ArrayList<Node> nodes) {
         for (Node node : nodes) {
             node.setSection(this);
         }
         this.nodes = new ArrayList<>(nodes);
         this.isFree = true;
+        this.id = ++numOfGeneratedSections;
     }
 
     public ArrayList<Node> getNodes() {
         return nodes;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public boolean getIsFree() {

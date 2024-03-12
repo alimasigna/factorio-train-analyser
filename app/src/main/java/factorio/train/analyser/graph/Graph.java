@@ -12,17 +12,24 @@ public class Graph {
 
     private ArrayList<Node> nodes;
     private Matrix matrix;
+    private static int numOfGeneratedGraphs = 0;
+    private int id;
 
     public Graph(String encodedString) {
         nodes = new ArrayList<>();
         sections = new ArrayList<>();
         setMatrix(encodedString);
         setSections();
+        id = ++numOfGeneratedGraphs;
     }
 
     private void setMatrix(String encodedString) {
         if (encodedString != null)
             matrix = new Matrix(encodedString);
+    }
+
+    public int getId() {
+        return id;
     }
 
     /**
