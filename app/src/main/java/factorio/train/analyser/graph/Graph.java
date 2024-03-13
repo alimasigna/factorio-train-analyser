@@ -7,12 +7,16 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import com.google.gson.annotations.Expose;
+
 public class Graph {
+    @Expose
     private ArrayList<Section> sections;
 
     private ArrayList<Node> nodes;
     private Matrix matrix;
     private static int numOfGeneratedGraphs = 0;
+    @Expose
     private int id;
 
     public Graph(String encodedString) {

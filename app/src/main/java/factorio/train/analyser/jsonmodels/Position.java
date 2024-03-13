@@ -1,6 +1,11 @@
 package factorio.train.analyser.jsonmodels;
+
+import com.google.gson.annotations.Expose;
+
 public class Position {
+    @Expose
     private double x;
+    @Expose
     private double y;
     public Position(double x, double y) {
         this.x = x;

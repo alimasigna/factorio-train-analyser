@@ -2,11 +2,15 @@ package factorio.train.analyser.graph;
 
 import java.util.ArrayList;
 
+import com.google.gson.annotations.Expose;
+
 public class Section {
+    @Expose
     private ArrayList<Node> nodes;
     private boolean isFree;
 
     private static int numOfGeneratedSections = 0;
+    @Expose
     private int id;
 
     public Section(ArrayList<Node> nodes) {
