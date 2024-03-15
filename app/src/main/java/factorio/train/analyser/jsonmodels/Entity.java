@@ -1,7 +1,5 @@
 package factorio.train.analyser.jsonmodels;
 
-import factorio.train.analyser.graph.LookUp;
-
 public class Entity {
     private int entity_number;
     private String name;
