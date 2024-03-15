@@ -15,10 +15,14 @@ public class Node {
     private transient boolean isEndNode;
     private transient static int numOfGeneratedNodes = 0;
     private int nodeId;
+    private ArrayList<ArrayList<Integer>> nextNodesIds;
+    private ArrayList<ArrayList<Integer>> protectedFromIds;
 
     public Node() {
         nextNodes = new ArrayList<>(2);
         protectedFrom = new ArrayList<>(2);
+        nextNodesIds = new ArrayList<>(2);
+        protectedFromIds = new ArrayList<>(2);
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
@@ -52,6 +56,7 @@ public class Node {
         // every node can have up to 2 possible groups of nextNodes
         if (!this.nextNodes.contains(nextNodes)) {
             this.nextNodes.add(nextNodes);
+            this.nextNodesIds.add(extractIds(nextNodes));
         }
     }
 
@@ -59,6 +64,7 @@ public class Node {
         // every node can have up to 2 possible groups from where it is protected from
         if (!this.protectedFrom.contains(protectedFrom)) {
             this.protectedFrom.add(protectedFrom);
+            this.protectedFromIds.add(extractIds(protectedFrom));
         }
     }
 
@@ -140,5 +146,13 @@ public class Node {
             track.removeNode(this);
             this.length -= track.getLength();
         }
+    }
+
+    private ArrayList<Integer> extractIds(ArrayList<Node> toBeExtracted) {
+        ArrayList<Integer> extractedIds = new ArrayList<>();
+        for (Node node : toBeExtracted) {
+            extractedIds.add(node.getNodeId());
+        }
+        return extractedIds;
     }
 }

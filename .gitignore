@@ -31,3 +31,6 @@ build
 #Ignore IntelliJ 
 .idea
 .DS_Store
+
+output.json
+*.txt
