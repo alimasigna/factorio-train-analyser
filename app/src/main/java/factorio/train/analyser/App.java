@@ -95,7 +95,7 @@ public class App {
                 sb.append(System.lineSeparator());
                 line = br.readLine();
             }
-            return sb.toString();
+            return sb.toString().trim();
         }
     }
 
