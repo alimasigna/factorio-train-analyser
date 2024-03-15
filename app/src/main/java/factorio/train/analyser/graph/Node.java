@@ -2,29 +2,19 @@ package factorio.train.analyser.graph;
 
 import java.util.ArrayList;
 
-import com.google.gson.annotations.Expose;
-
 public class Node {
-    private Section section;
-    @Expose
-    private ArrayList<ArrayList<Node>> nextNodes;
-    @Expose
-    private ArrayList<ArrayList<Node>> protectedFrom;
-    @Expose
+    private transient Section section;
+    private transient ArrayList<ArrayList<Node>> nextNodes;
+    private transient ArrayList<ArrayList<Node>> protectedFrom;
     private ArrayList<Track> tracks;
-    @Expose
     private int length;
-    @Expose
     private boolean isOutput;
-    @Expose
     private boolean isInput;
 
-    private boolean hasBeenMerged;
-    @Expose
-    private boolean isEndNode;
-    private static int numOfGeneratedNodes = 0;
-    @Expose
-    private int id;
+    private transient boolean hasBeenMerged;
+    private transient boolean isEndNode;
+    private transient static int numOfGeneratedNodes = 0;
+    private int nodeId;
 
     public Node() {
         nextNodes = new ArrayList<>(2);
@@ -35,7 +25,7 @@ public class Node {
         isOutput = false;
         isInput = false;
         length = 0;
-        this.id = ++numOfGeneratedNodes;
+        this.nodeId = ++numOfGeneratedNodes;
     }
 
     public void addTrack(Track track) {
@@ -50,8 +40,8 @@ public class Node {
         }
     }
 
-    public int getId() {
-        return id;
+    public int getNodeId() {
+        return nodeId;
     }
 
     public int getLength() {

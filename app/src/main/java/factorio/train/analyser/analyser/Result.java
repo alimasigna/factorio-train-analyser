@@ -3,16 +3,12 @@ package factorio.train.analyser.analyser;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.google.gson.annotations.Expose;
-
 import factorio.train.analyser.graph.Node;
 
 public class Result {
     
-    @Expose
     private ArrayList<Node> deadlockPath;
-    private ArrayList<HashMap<Node, Node>> chainSignalsVisited;
-    @Expose
+    private transient ArrayList<HashMap<Node, Node>> chainSignalsVisited;
     private boolean isDeadlock;
 
     public Result(){

@@ -5,27 +5,19 @@ import factorio.train.analyser.jsonmodels.Position;
 
 import java.util.ArrayList;
 
-import com.google.gson.annotations.Expose;
-
 public class Track {
-    private ArrayList<Node> nodes;
+    private transient ArrayList<Node> nodes;
 
-    private ArrayList<Node> frontierNodes;
-    @Expose
-    private  boolean isEndTrack;
-    @Expose
-    private int length;
-    @Expose
+    private transient ArrayList<Node> frontierNodes;
+    private transient boolean isEndTrack;
+    private transient int length;
     private int direction;
-    @Expose
     private Position position;
-    private ArrayList<Track> goesTo;
-    private ArrayList<Track> protectedFrom;
-    @Expose
+    private transient ArrayList<Track> goesTo;
+    private transient ArrayList<Track> protectedFrom;
     private String name;
-    private static int numOfGeneratedTracks = 0;
-    @Expose
-    private int id;
+    private transient static int numOfGeneratedTracks = 0;
+    private int trackId;
 
     public Track (Node parent, Entity entity) {
         frontierNodes = new ArrayList<>();
@@ -38,15 +30,15 @@ public class Track {
         this.direction = entity.getDirection();
         this.position = new Position(entity.getPosition().getX(), entity.getPosition().getY());
         this.name = entity.getName();
-        this.id = ++numOfGeneratedTracks;
+        this.trackId = ++numOfGeneratedTracks;
     }
 
     public void addNode(Node node) {
         this.nodes.add(node);
     }
 
-    public int getId() {
-        return id;
+    public int getTrackId() {
+        return trackId;
     }
 
     public int getLength() {
