@@ -8,7 +8,7 @@ import factorio.train.analyser.graph.Node;
 public class Result {
     
     private ArrayList<Node> deadlockPath;
-    private ArrayList<HashMap<Node, Node>> chainSignalsVisited;
+    private transient ArrayList<HashMap<Node, Node>> chainSignalsVisited;
     private boolean isDeadlock;
 
     public Result(){

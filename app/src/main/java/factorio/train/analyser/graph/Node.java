@@ -3,29 +3,33 @@ package factorio.train.analyser.graph;
 import java.util.ArrayList;
 
 public class Node {
-    private Section section;
-    private ArrayList<ArrayList<Node>> nextNodes;
-    private ArrayList<ArrayList<Node>> protectedFrom;
+    private transient Section section;
+    private transient ArrayList<ArrayList<Node>> nextNodes;
+    private transient ArrayList<ArrayList<Node>> protectedFrom;
     private ArrayList<Track> tracks;
     private int length;
     private boolean isOutput;
     private boolean isInput;
 
-    private boolean hasBeenMerged;
-    private boolean isEndNode;
-    private static int numOfGeneratedNodes = 0;
-    private int id;
+    private transient boolean hasBeenMerged;
+    private transient boolean isEndNode;
+    private transient static int numOfGeneratedNodes = 0;
+    private int nodeId;
+    private ArrayList<ArrayList<Integer>> nextNodesIds;
+    private ArrayList<ArrayList<Integer>> protectedFromIds;
 
     public Node() {
         nextNodes = new ArrayList<>(2);
         protectedFrom = new ArrayList<>(2);
+        nextNodesIds = new ArrayList<>(2);
+        protectedFromIds = new ArrayList<>(2);
         tracks = new ArrayList<>();
         hasBeenMerged = false;
         isEndNode = false;
         isOutput = false;
         isInput = false;
         length = 0;
-        this.id = ++numOfGeneratedNodes;
+        this.nodeId = ++numOfGeneratedNodes;
     }
 
     public void addTrack(Track track) {
@@ -40,8 +44,8 @@ public class Node {
         }
     }
 
-    public int getId() {
-        return id;
+    public int getNodeId() {
+        return nodeId;
     }
 
     public int getLength() {
@@ -52,6 +56,7 @@ public class Node {
         // every node can have up to 2 possible groups of nextNodes
         if (!this.nextNodes.contains(nextNodes)) {
             this.nextNodes.add(nextNodes);
+            this.nextNodesIds.add(extractIds(nextNodes));
         }
     }
 
@@ -59,6 +64,7 @@ public class Node {
         // every node can have up to 2 possible groups from where it is protected from
         if (!this.protectedFrom.contains(protectedFrom)) {
             this.protectedFrom.add(protectedFrom);
+            this.protectedFromIds.add(extractIds(protectedFrom));
         }
     }
 
@@ -140,5 +146,13 @@ public class Node {
             track.removeNode(this);
             this.length -= track.getLength();
         }
+    }
+
+    private ArrayList<Integer> extractIds(ArrayList<Node> toBeExtracted) {
+        ArrayList<Integer> extractedIds = new ArrayList<>();
+        for (Node node : toBeExtracted) {
+            extractedIds.add(node.getNodeId());
+        }
+        return extractedIds;
     }
 }

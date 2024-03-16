@@ -11,7 +11,11 @@ public class DeadlockAnalyser {
 
     private Graph graph;
 
-    public DeadlockAnalyser() {}
+    public DeadlockAnalyser() { }
+    
+    public DeadlockAnalyser(Graph graph) {
+        this.graph = graph;
+    }
 
     /**
      * set the Graph for the DeadlockAnalyser

@@ -10,17 +10,17 @@ import java.util.Queue;
 public class Graph {
     private ArrayList<Section> sections;
 
-    private ArrayList<Node> nodes;
-    private Matrix matrix;
-    private static int numOfGeneratedGraphs = 0;
-    private int id;
+    private transient ArrayList<Node> nodes;
+    private transient Matrix matrix;
+    private transient static int numOfGeneratedGraphs = 0;
+    private int graphId;
 
     public Graph(String encodedString) {
         nodes = new ArrayList<>();
         sections = new ArrayList<>();
         setMatrix(encodedString);
         setSections();
-        id = ++numOfGeneratedGraphs;
+        graphId = ++numOfGeneratedGraphs;
     }
 
     private void setMatrix(String encodedString) {
@@ -28,8 +28,8 @@ public class Graph {
             matrix = new Matrix(encodedString);
     }
 
-    public int getId() {
-        return id;
+    public int getGraphId() {
+        return graphId;
     }
 
     /**

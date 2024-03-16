@@ -1,4 +1,5 @@
 package factorio.train.analyser.jsonmodels;
+
 public class Position {
     private double x;
     private double y;
