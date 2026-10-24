@@ -68,11 +68,12 @@ public class App {
         DeadlockAnalyser analyser = new DeadlockAnalyser(graph);
         ArrayList<Result> result = analyser.deadlockCheck();
         String json = toJson(result, graph);
+        // Always written, deadlock or not: printResult() points the user at it either way.
+        writeJson(json);
 
         for (int i = 0; i < result.size(); i++) {
             if (result.get(i).getIsDeadlock()) {
                 DeadlockViewer.show(json);
-                exportToJson(result, graph);
                 return true;
             }
         }
@@ -86,7 +87,10 @@ public class App {
     }
 
     public void exportToJson(ArrayList<Result> result, Graph graph) throws IOException {
-        String json = toJson(result, graph);
+        writeJson(toJson(result, graph));
+    }
+
+    private void writeJson(String json) throws IOException {
         try (FileWriter writer = new FileWriter("./output.json")) {
             writer.write(json);
         }

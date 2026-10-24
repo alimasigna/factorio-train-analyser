@@ -14,16 +14,19 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 
+import factorio.train.analyser.rail.RailEnd;
+import factorio.train.analyser.rail.RailGeometry;
+
 /**
  * Graphical view of a Factorio rail network with the detected deadlocks highlighted.
  *
  * Input is the JSON output of the analysis:
  * {"result":[{"deadlockPath":[Node...],"isDeadlock":true}], "graph":{"sections":[{"nodes":[...]}]}}
  *
- * Coordinates: the positions in the JSON are the "matrix coordinates" (Factorio tiles * 2, shifted).
- * The viewer divides them by 2 and works in tiles. A straight rail is 2x2 tiles, a curved rail
- * (curved-rail) is 4x8 tiles. The connection points of the 8 curve directions correspond to the
- * offsets in LookUp.lookUpConnected(...) of the thesis.
+ * Coordinates: the positions in the JSON are Factorio tiles, exactly as the blueprint states them,
+ * so they may be negative. The shape of each rail piece comes from RailGeometry, which is the same
+ * geometry the analysis itself is built on - so the drawing cannot drift away from the model, and
+ * every rail Factorio 2.0 has is covered, including the elevated ones.
  *
  * Trains: the deadlock path contains the nodes visited by the algorithm (recursion order). From it a
  * smallest waiting cycle is reconstructed: trains in nodes of different sections, each of which wants
@@ -38,6 +41,12 @@ import java.util.List;
  */
 public final class DeadlockViewer {
 
+    /** Which level a rail piece runs on. */
+    static final int GROUND = 0, RAMP = 1, ELEVATED = 2;
+
+    /** How far an elevated piece's shadow falls, in tiles. */
+    private static final double SHADOW_OFFSET = 1.1;
+
     private DeadlockViewer() {
     }
 
@@ -49,25 +58,78 @@ public final class DeadlockViewer {
         final int id;
         final String name;
         final int dir;
-        final double jx, jy;   // original position from the JSON (matrix coordinates)
-        final double x, y;     // in Tiles
+        final double x, y;     // in tiles, as the blueprint states it
         final Path2D shape;
         final Point2D mid;
         final double[][] ends; // end points (tiles) of the rail piece
-        Shape railsCache, tiesCache;
+        final double[][] line; // centre line, running ground end first on a ramp
+        final int level;       // GROUND, RAMP or ELEVATED
+        Shape railsCache, tiesCache, shadowCache;
 
-        Track(int id, String name, int dir, double jx, double jy) {
+        Track(int id, String name, int dir, double x, double y) {
             this.id = id;
             this.name = name;
             this.dir = dir;
-            this.jx = jx;
-            this.jy = jy;
-            this.x = jx / 2.0;
-            this.y = jy / 2.0;
+            this.x = x;
+            this.y = y;
             Geometry g = Geometry.of(name, dir, x, y);
             this.shape = g.shape;
             this.mid = g.mid;
             this.ends = g.ends;
+            this.line = g.line;
+            this.level = name == null || !RailGeometry.isRail(name) ? GROUND
+                    : RailGeometry.isRamp(name) ? RAMP
+                    : RailGeometry.isElevated(name) ? ELEVATED : GROUND;
+        }
+
+        /**
+         * The shadow this piece casts on the ground, which is what tells the
+         * two levels apart. A ramp's shadow grows from nothing at its ground
+         * end to full at its elevated end, so it also shows which way it climbs.
+         */
+        Shape shadow() {
+            if (level == GROUND) return null;
+            if (shadowCache == null) {
+                List<double[]> pts = resample(line, level == RAMP ? 24 : line.length);
+                Path2D.Double p = new Path2D.Double();
+                for (int i = 0; i < pts.size(); i++) {
+                    double lift = level == RAMP ? (double) i / (pts.size() - 1) : 1.0;
+                    double[] q = pts.get(i);
+                    double sx = q[0] + SHADOW_OFFSET * lift, sy = q[1] + SHADOW_OFFSET * lift;
+                    if (i == 0) p.moveTo(sx, sy); else p.lineTo(sx, sy);
+                }
+                shadowCache = new BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+                        .createStrokedShape(p);
+            }
+            return shadowCache;
+        }
+
+        /** Spreads count points evenly along a polyline by arc length. */
+        static List<double[]> resample(double[][] line, int count) {
+            List<double[]> out = new ArrayList<>();
+            double total = 0;
+            double[] cum = new double[line.length];
+            for (int i = 1; i < line.length; i++) {
+                total += Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]);
+                cum[i] = total;
+            }
+            if (total <= 0) {
+                out.add(new double[]{line[0][0], line[0][1]});
+                out.add(new double[]{line[0][0], line[0][1]});
+                return out;
+            }
+            int steps = Math.max(2, count);
+            int seg = 0;
+            for (int i = 0; i < steps; i++) {
+                double want = total * i / (steps - 1);
+                while (seg < line.length - 2 && cum[seg + 1] < want) seg++;
+                double span = cum[seg + 1] - cum[seg];
+                double f = span <= 0 ? 0 : (want - cum[seg]) / span;
+                out.add(new double[]{
+                        line[seg][0] + (line[seg + 1][0] - line[seg][0]) * f,
+                        line[seg][1] + (line[seg + 1][1] - line[seg][1]) * f});
+            }
+            return out;
         }
 
         /** The two rail strands (as an area, cached). */
@@ -92,14 +154,14 @@ public final class DeadlockViewer {
 
     static final class Node {
         final int id;
-        final int length;
+        final double length;   // arc length in tiles
         final boolean input, output;
         final List<Integer> trackIds = new ArrayList<>();
         final List<List<Integer>> next = new ArrayList<>();
         final List<List<Integer>> protectedFrom = new ArrayList<>();
         int sectionId = -1;
 
-        Node(int id, int length, boolean input, boolean output) {
+        Node(int id, double length, boolean input, boolean output) {
             this.id = id;
             this.length = length;
             this.input = input;
@@ -297,69 +359,38 @@ public final class DeadlockViewer {
         final Path2D shape;
         final Point2D mid;
         final double[][] ends;
+        final double[][] line;  // centre line as a polyline, ground end first on a ramp
 
-        private Geometry(Path2D shape, Point2D mid, double[][] ends) {
+        private Geometry(Path2D shape, Point2D mid, double[][] ends, double[][] line) {
             this.shape = shape;
             this.mid = mid;
             this.ends = ends;
+            this.line = line;
         }
 
         /**
-         * Connection points of the 8 curved rails relative to the rail centre (tiles):
-         * {end at the straight/axis-aligned rail (ax, ay), end at the diagonal rail (bx, by)}.
-         * Derived from the offsets in LookUp.lookUpConnected (Fig. 27) and verified on the example network.
+         * The shape of one rail piece, taken from the analysis' own geometry so that what is drawn
+         * and what is reasoned about cannot disagree. A rail the model does not know is drawn as a
+         * bare point rather than guessed at.
          */
-        private static final double[][] CURVES = {
-                /* 0 */ {1, 4, -2, -2},
-                /* 1 */ {-1, 4, 2, -2},
-                /* 2 */ {-4, 1, 2, -2},
-                /* 3 */ {-4, -1, 2, 2},
-                /* 4 */ {-1, -4, 2, 2},
-                /* 5 */ {1, -4, -2, 2},
-                /* 6 */ {4, -1, -2, 2},
-                /* 7 */ {4, 1, -2, -2},
-        };
-
         static Geometry of(String name, int dir, double x, double y) {
+            if (name == null || !RailGeometry.isKnownOrientation(name, dir)) {
+                Path2D.Double dot = new Path2D.Double();
+                dot.moveTo(x, y);
+                dot.lineTo(x, y);
+                double[][] point = {{x, y}, {x, y}};
+                return new Geometry(dot, new Point2D.Double(x, y), point, point);
+            }
+            double[][] line = RailGeometry.centreLine(name, dir, x, y);
             Path2D.Double p = new Path2D.Double();
-            if (name != null && name.contains("curved")) {
-                double[] c = CURVES[((dir % 8) + 8) % 8];
-                double ax = x + c[0], ay = y + c[1], bx = x + c[2], by = y + c[3];
-                // Tangent at the start (A): from A into the curve (axis-aligned)
-                double tax, tay;
-                if (Math.abs(c[1]) == 4) {
-                    tax = 0;
-                    tay = -Math.signum(c[1]);
-                } else {
-                    tax = -Math.signum(c[0]);
-                    tay = 0;
-                }
-                // Tangent at B: diagonally into the curve
-                double tbx = -Math.signum(c[2]) / Math.sqrt(2), tby = -Math.signum(c[3]) / Math.sqrt(2);
-                double h = 0.36 * Math.hypot(bx - ax, by - ay);
-                p.moveTo(ax, ay);
-                p.curveTo(ax + tax * h, ay + tay * h, bx + tbx * h, by + tby * h, bx, by);
-                Point2D mid = bezier(ax, ay, ax + tax * h, ay + tay * h, bx + tbx * h, by + tby * h, bx, by, 0.5);
-                return new Geometry(p, mid, new double[][]{{ax, ay}, {bx, by}});
-            }
-            double dx, dy;
-            switch (((dir % 8) + 8) % 8) {
-                case 0: case 4: dx = 0; dy = 1; break;   // |
-                case 2: case 6: dx = 1; dy = 0; break;   // -
-                case 1: case 5: dx = 1; dy = 1; break;   // \
-                default:        dx = 1; dy = -1; break;  // /  (3, 7)
-            }
-            p.moveTo(x - dx, y - dy);
-            p.lineTo(x + dx, y + dy);
-            return new Geometry(p, new Point2D.Double(x, y), new double[][]{{x - dx, y - dy}, {x + dx, y + dy}});
-        }
+            p.moveTo(line[0][0], line[0][1]);
+            for (int i = 1; i < line.length; i++) p.lineTo(line[i][0], line[i][1]);
 
-        private static Point2D bezier(double x0, double y0, double x1, double y1, double x2, double y2,
-                                      double x3, double y3, double t) {
-            double u = 1 - t;
-            double bx = u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3;
-            double by = u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3;
-            return new Point2D.Double(bx, by);
+            double[] centre = line[line.length / 2];
+            double[][] ends = new double[2][];
+            RailEnd[] railEnds = RailGeometry.endsOf(name, dir, x, y);
+            for (int i = 0; i < 2; i++) ends[i] = new double[]{railEnds[i].x(), railEnds[i].y()};
+            return new Geometry(p, new Point2D.Double(centre[0], centre[1]), ends, line);
         }
     }
 
@@ -599,7 +630,7 @@ public final class DeadlockViewer {
         int id = (int) num(o.get("nodeId"), -1);
         Node existing = m.nodes.get(id);
         if (existing != null) return existing;
-        Node n = new Node(id, (int) num(o.get("length"), 0),
+        Node n = new Node(id, num(o.get("length"), 0),
                 Boolean.TRUE.equals(o.get("isInput")), Boolean.TRUE.equals(o.get("isOutput")));
         Object tl = o.get("tracks");
         if (tl instanceof List) {
@@ -639,6 +670,10 @@ public final class DeadlockViewer {
     static final class ViewPanel extends JPanel {
         private static final Color BG = new Color(0x12161b);
         private static final Color GLOW_BASE = new Color(0x181d23);
+        // Ballast beds: ground keeps the neutral tone, the upper level gets a
+        // cooler one, and a ramp sits between the two.
+        private static final Color ELEV_BED = new Color(0x27405e);
+        private static final Color SHADOW = new Color(0, 0, 0, 150);
         private static final Color TIES = new Color(0x4a3f35), TIES_DIM = new Color(0x2e2b2a);
         private static final Color RAIL = new Color(0xa4aebb), RAIL_DIM = new Color(0x4b5460);
         private static final Color DL_GLOW = new Color(255, 82, 72, 62), DL_RAIL = new Color(0xf0c2bd), DL_TIES = new Color(0x6e3a36);
@@ -845,7 +880,8 @@ public final class DeadlockViewer {
             AffineTransform screen = g.getTransform();
             g.transform(world);
 
-            // 1) ballast bed + glow of the highlights
+            // 1) ballast bed + glow of the highlights. Lowest level first, so
+            // that whatever is overhead is drawn over what runs beneath it.
             g.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g.setColor(GLOW_BASE);
             for (Track t : model.tracks.values()) g.draw(t.shape);
@@ -863,23 +899,40 @@ public final class DeadlockViewer {
             g.setColor(SEL_GLOW);
             g.fill(selGlow);
 
-            // 2) ties and rails
+            // The deck of anything overhead goes on top of the highlight glow,
+            // so which level a piece is on stays readable even when it is part
+            // of the deadlock. The glow is wider than the deck, so its halo
+            // still shows around it.
+            g.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            for (Track t : model.tracks.values()) {
+                if (t.level != RAMP) continue;
+                // A ramp's deck fades from the ground tone to the elevated one
+                // along its length, which shows at a glance which way it climbs.
+                List<double[]> pts = Track.resample(t.line, 16);
+                for (int i = 0; i + 1 < pts.size(); i++) {
+                    g.setColor(blend(GLOW_BASE, ELEV_BED, (i + 0.5) / (pts.size() - 1)));
+                    g.draw(new Line2D.Double(pts.get(i)[0], pts.get(i)[1],
+                            pts.get(i + 1)[0], pts.get(i + 1)[1]));
+                }
+            }
+            g.setColor(ELEV_BED);
+            for (Track t : model.tracks.values()) if (t.level == ELEVATED) g.draw(t.shape);
+
+            // 2) ties and rails, ground level first. The shadows of everything
+            // overhead go on once the ground is finished, so they fall across
+            // it rather than being painted over by it.
             boolean detailed = scale >= 7;
             for (Track t : model.tracks.values()) {
-                boolean inDl = dlTracks.contains(t.id);
-                boolean dim = !showOthers && !inDl && !nextTracks.contains(t.id) && !selTracks.contains(t.id);
-                Color rail = selTracks.contains(t.id) ? SEL_RAIL : nextTracks.contains(t.id) ? NEXT_RAIL
-                        : inDl ? DL_RAIL : dim ? RAIL_DIM : RAIL;
-                Color ties = inDl ? DL_TIES : dim ? TIES_DIM : TIES;
-                if (detailed) {
-                    g.setColor(ties);
-                    g.fill(t.ties());
-                    g.setColor(rail);
-                    g.fill(t.rails());
-                } else {
-                    g.setColor(rail);
-                    g.setStroke(new BasicStroke(0.55f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
-                    g.draw(t.shape);
+                if (t.level == GROUND) drawTrack(g, t, detailed, dlTracks, nextTracks, selTracks);
+            }
+            g.setColor(SHADOW);
+            for (Track t : model.tracks.values()) {
+                Shape shadow = t.shadow();
+                if (shadow != null) g.fill(shadow);
+            }
+            for (int level : new int[]{RAMP, ELEVATED}) {
+                for (Track t : model.tracks.values()) {
+                    if (t.level == level) drawTrack(g, t, detailed, dlTracks, nextTracks, selTracks);
                 }
             }
 
@@ -1008,6 +1061,25 @@ public final class DeadlockViewer {
 
             drawOverlay(g);
             g.dispose();
+        }
+
+        private void drawTrack(Graphics2D g, Track t, boolean detailed,
+                Set<Integer> dlTracks, Set<Integer> nextTracks, Set<Integer> selTracks) {
+            boolean inDl = dlTracks.contains(t.id);
+            boolean dim = !showOthers && !inDl && !nextTracks.contains(t.id) && !selTracks.contains(t.id);
+            Color rail = selTracks.contains(t.id) ? SEL_RAIL : nextTracks.contains(t.id) ? NEXT_RAIL
+                    : inDl ? DL_RAIL : dim ? RAIL_DIM : RAIL;
+            Color ties = inDl ? DL_TIES : dim ? TIES_DIM : TIES;
+            if (detailed) {
+                g.setColor(ties);
+                g.fill(t.ties());
+                g.setColor(rail);
+                g.fill(t.rails());
+            } else {
+                g.setColor(rail);
+                g.setStroke(new BasicStroke(0.55f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));
+                g.draw(t.shape);
+            }
         }
 
         private Shape glow(Collection<Integer> ids) {
@@ -1260,6 +1332,7 @@ public final class DeadlockViewer {
                     {"sel", "Selected node (click)"},
                     {"next", "Successors of the selection"},
                     {"in", "Network input / output"},
+                    {"elev", "Elevated track, with its shadow. A ramp fades in as it climbs"},
             };
             int x = 18, y = getHeight() - 18 - items.length * 21 + 8;
             g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
@@ -1274,6 +1347,17 @@ public final class DeadlockViewer {
                         g.fillRoundRect(x, yy - 9, 22, 10, 5, 5);
                         g.setColor(new Color(0xff4638));
                         g.fillOval(x + 26, yy - 8, 8, 8);
+                        break;
+                    case "elev":
+                        g.setColor(SHADOW);
+                        g.fillRoundRect(x + 5, yy - 5, 22, 10, 4, 4);
+                        for (int px = 0; px < 22; px++) {
+                            g.setColor(blend(GLOW_BASE, ELEV_BED, px / 21.0));
+                            g.fillRect(x + px, yy - 9, 1, 10);
+                        }
+                        g.setColor(RAIL);
+                        g.fillRect(x + 2, yy - 7, 18, 1);
+                        g.fillRect(x + 2, yy - 3, 18, 1);
                         break;
                     case "dl": g.setColor(new Color(255, 80, 70, 150)); g.fillRoundRect(x, yy - 9, 22, 10, 4, 4); break;
                     case "sel": g.setColor(new Color(76, 201, 240, 190)); g.fillRoundRect(x, yy - 9, 22, 10, 4, 4); break;
@@ -1578,14 +1662,15 @@ public final class DeadlockViewer {
             }
             StringBuilder sb = new StringBuilder();
             sb.append("Node ").append(n.id).append("   Section ").append(n.sectionId)
-                    .append("   Length ").append(n.length).append('\n');
+                    .append(String.format(Locale.ROOT, "   Length %.1f%n", n.length));
             sb.append("Input: ").append(n.input).append("   Output: ").append(n.output).append('\n');
             sb.append("nextNodes: ").append(n.next).append('\n');
             sb.append("protectedFrom: ").append(n.protectedFrom).append("\n\n");
-            sb.append("Tracks (id, name, dir, x/y from JSON):\n");
+            sb.append("Tracks (id, name, dir, x/y in tiles):\n");
             for (int tid : n.trackIds) {
                 Track t = model.tracks.get(tid);
-                sb.append(String.format(Locale.ROOT, " t%-3d %-13s d%d  %.0f/%.0f%n", t.id, t.name, t.dir, t.jx, t.jy));
+                sb.append(String.format(Locale.ROOT, " t%-3d %-28s d%-2d %.0f/%.0f%n",
+                        t.id, t.name, t.dir, t.x, t.y));
             }
             detail.setText(sb.toString());
             detail.setCaretPosition(0);
