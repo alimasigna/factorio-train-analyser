@@ -32,7 +32,6 @@ public class Track {
 
     private transient RailEnd[] ends;
     private transient double[][] centreLine;
-    private transient int layer;
 
     public Track(Node parent, Entity entity) {
         frontierNodes = new ArrayList<>();
@@ -45,7 +44,6 @@ public class Track {
         this.position = new Position(entity.getPosition().getX(), entity.getPosition().getY());
         this.name = entity.getName();
         this.length = RailGeometry.length(this.name, this.direction);
-        this.layer = RailGeometry.layer(this.name);
         this.ends = RailGeometry.endsOf(this.name, this.direction, position.getX(), position.getY());
         this.centreLine = RailGeometry.centreLine(this.name, this.direction, position.getX(), position.getY());
         this.trackId = ++numOfGeneratedTracks;
@@ -83,12 +81,21 @@ public class Track {
     }
 
     /**
-     * Ground level or elevated. Rails only connect to rails on the same layer,
-     * which is what keeps an elevated crossing separate from the ground one
-     * underneath it.
+     * Whether this track blocks the given layer, and so can be crossed by
+     * tracks running on it.
+     *
+     * <p>A ground rail and an elevated rail have disjoint collision masks in
+     * the game and pass over each other freely, which is the whole point of
+     * elevated track: a flyover does not share a block with the line beneath
+     * it. A {@code rail-ramp} carries both masks and so blocks either level.
      */
-    public int getLayer() {
-        return layer;
+    public boolean blocksLayer(int layer) {
+        return RailGeometry.blocksLayer(name, direction, layer);
+    }
+
+    /** Whether this track is the ramp joining the ground and elevated networks. */
+    public boolean isRamp() {
+        return RailGeometry.isRamp(name);
     }
 
     public void setProtectedFrom(Track protectedFrom) {

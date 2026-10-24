@@ -15,6 +15,7 @@ public class RailGeometryTest {
             "straight-rail", "half-diagonal-rail", "curved-rail-a", "curved-rail-b",
             "legacy-straight-rail", "legacy-curved-rail");
 
+    /** In the same order as the first four of {@link #GROUND_RAILS}. */
     private static final List<String> ELEVATED_RAILS = List.of(
             "elevated-straight-rail", "elevated-half-diagonal-rail",
             "elevated-curved-rail-a", "elevated-curved-rail-b");
@@ -62,8 +63,8 @@ public class RailGeometryTest {
     @Test
     public void straightRailSpansItsTwoTiles() {
         RailEnd[] vertical = RailGeometry.endsOf("straight-rail", 0, 1, 1);
-        assertEquals(new RailEnd(1, 0, 0), vertical[0]);
-        assertEquals(new RailEnd(1, 2, 8), vertical[1]);
+        assertEquals(new RailEnd(1, 0, 0, RailGeometry.GROUND_LAYER), vertical[0]);
+        assertEquals(new RailEnd(1, 2, 8, RailGeometry.GROUND_LAYER), vertical[1]);
         assertEquals(2.0, RailGeometry.length("straight-rail", 0), 1e-9);
         assertTrue(RailGeometry.isStraight("straight-rail", 0));
     }
@@ -71,8 +72,8 @@ public class RailGeometryTest {
     @Test
     public void curvedRailARunsFromAnOrthogonalEndToAHalfDiagonalOne() {
         RailEnd[] ends = RailGeometry.endsOf("curved-rail-a", 0, 0, 0);
-        assertEquals(new RailEnd(0, 2, 8), ends[0]);
-        assertEquals(new RailEnd(-1, -3, 15), ends[1]);
+        assertEquals(new RailEnd(0, 2, 8, RailGeometry.GROUND_LAYER), ends[0]);
+        assertEquals(new RailEnd(-1, -3, 15, RailGeometry.GROUND_LAYER), ends[1]);
         assertFalse(RailGeometry.isStraight("curved-rail-a", 0));
     }
 
@@ -143,20 +144,91 @@ public class RailGeometryTest {
     }
 
     @Test
-    public void elevatedRailsAreRecognisedAndKeptOnTheirOwnLayer() {
-        for (String name : ELEVATED_RAILS) {
-            assertTrue(name, RailGeometry.isRail(name));
-            assertTrue(name, RailGeometry.isElevated(name));
-            assertEquals(name, RailGeometry.ELEVATED_LAYER, RailGeometry.layer(name));
+    public void elevatedRailsHaveTheSameShapeAsTheirGroundCounterparts() {
+        for (int i = 0; i < ELEVATED_RAILS.size(); i++) {
+            String elevated = ELEVATED_RAILS.get(i);
+            String ground = GROUND_RAILS.get(i);
+            assertTrue(elevated, RailGeometry.isElevated(elevated));
+            assertFalse(ground, RailGeometry.isElevated(ground));
+            for (int direction = 0; direction < Direction.COUNT; direction++) {
+                assertEquals(elevated,
+                        RailGeometry.isKnownOrientation(ground, direction),
+                        RailGeometry.isKnownOrientation(elevated, direction));
+                if (!RailGeometry.isKnownOrientation(ground, direction)) {
+                    continue;
+                }
+                RailEnd[] onGround = RailGeometry.endsOf(ground, direction, 0, 0);
+                RailEnd[] up = RailGeometry.endsOf(elevated, direction, 0, 0);
+                for (int end = 0; end < onGround.length; end++) {
+                    assertEquals(elevated + "@" + direction, onGround[end].x(), up[end].x(), 0);
+                    assertEquals(elevated + "@" + direction, onGround[end].y(), up[end].y(), 0);
+                    assertEquals(elevated + "@" + direction,
+                            onGround[end].heading(), up[end].heading());
+                }
+            }
         }
+    }
+
+    @Test
+    public void elevatedAndGroundRailsDoNotBlockEachOther() {
+        // Disjoint collision masks in the game: a ground rail builds freely
+        // under an elevated one, which is the whole point of elevated track.
         for (String name : GROUND_RAILS) {
-            assertFalse(name, RailGeometry.isElevated(name));
-            assertEquals(name, RailGeometry.GROUND_LAYER, RailGeometry.layer(name));
+            assertTrue(name, RailGeometry.blocksLayer(name, 0, RailGeometry.GROUND_LAYER));
+            assertFalse(name, RailGeometry.blocksLayer(name, 0, RailGeometry.ELEVATED_LAYER));
         }
-        // The pieces that join the two layers still need measuring.
-        assertTrue(RailGeometry.isUnmappedRail("rail-ramp"));
-        assertTrue(RailGeometry.isUnmappedRail("rail-support"));
-        assertFalse(RailGeometry.isRail("rail-ramp"));
+        for (String name : ELEVATED_RAILS) {
+            assertFalse(name, RailGeometry.blocksLayer(name, 0, RailGeometry.GROUND_LAYER));
+            assertTrue(name, RailGeometry.blocksLayer(name, 0, RailGeometry.ELEVATED_LAYER));
+        }
+        // A ramp carries both masks, so nothing may cross it at either level.
+        assertTrue(RailGeometry.blocksLayer("rail-ramp", 4, RailGeometry.GROUND_LAYER));
+        assertTrue(RailGeometry.blocksLayer("rail-ramp", 4, RailGeometry.ELEVATED_LAYER));
+    }
+
+    @Test
+    public void aRampJoinsAGroundRailToAnElevatedOne() {
+        assertTrue(RailGeometry.isRamp("rail-ramp"));
+        assertFalse(RailGeometry.isElevated("rail-ramp"));
+        assertEquals(16.0, RailGeometry.length("rail-ramp", 4), 1e-9);
+        assertTrue(RailGeometry.isStraight("rail-ramp", 4));
+
+        // Direction 4 climbs eastwards: the ground end is 8 tiles west of the
+        // entity and the elevated end 8 tiles east.
+        RailEnd[] ramp = RailGeometry.endsOf("rail-ramp", 4, 0, 0);
+        assertEquals(new RailEnd(-8, 0, 12, RailGeometry.GROUND_LAYER), ramp[0]);
+        assertEquals(new RailEnd(8, 0, 4, RailGeometry.ELEVATED_LAYER), ramp[1]);
+
+        // A ground rail joins the bottom and an elevated rail the top.
+        assertMeets(ramp[0], end("straight-rail", 4, -9, 0, 0));
+        assertMeets(ramp[1], end("elevated-straight-rail", 4, 9, 0, 1));
+
+        // The layers do not leak: a ground rail cannot attach to the top of a
+        // ramp, nor an elevated rail to the bottom.
+        assertFalse(ramp[1].meets(end("straight-rail", 4, 9, 0, 1)));
+        assertFalse(ramp[0].meets(end("elevated-straight-rail", 4, -9, 0, 0)));
+    }
+
+    @Test
+    public void allFourRampOrientationsPointTheirElevatedEndForwards() {
+        // 0 north, 4 east, 8 south, 12 west.
+        assertEquals(new RailEnd(0, -8, 0, RailGeometry.ELEVATED_LAYER),
+                RailGeometry.endsOf("rail-ramp", 0, 0, 0)[1]);
+        assertEquals(new RailEnd(0, 8, 8, RailGeometry.ELEVATED_LAYER),
+                RailGeometry.endsOf("rail-ramp", 8, 0, 0)[1]);
+        assertEquals(new RailEnd(-8, 0, 12, RailGeometry.ELEVATED_LAYER),
+                RailGeometry.endsOf("rail-ramp", 12, 0, 0)[1]);
+        for (int direction : new int[] { 0, 4, 8, 12 }) {
+            RailEnd[] ramp = RailGeometry.endsOf("rail-ramp", direction, 0, 0);
+            assertEquals(RailGeometry.GROUND_LAYER, ramp[0].layer());
+            assertEquals(RailGeometry.ELEVATED_LAYER, ramp[1].layer());
+        }
+    }
+
+    @Test
+    public void aRailSupportCarriesNoTrain() {
+        assertTrue(RailGeometry.isNonTrackRail("rail-support"));
+        assertFalse(RailGeometry.isRail("rail-support"));
     }
 
     private static void assertSampledLength(String name, int direction, double expected) {

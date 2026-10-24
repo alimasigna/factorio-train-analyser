@@ -3,11 +3,15 @@ package factorio.train.analyser.graph;
 import factorio.train.analyser.Blueprints;
 import factorio.train.analyser.Matrix;
 import factorio.train.analyser.jsonmodels.Entity;
+import factorio.train.analyser.analyser.DeadlockAnalyser;
+import factorio.train.analyser.analyser.Result;
+import factorio.train.analyser.rail.Polylines;
 import factorio.train.analyser.rail.RailGeometry;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
@@ -115,22 +119,43 @@ public class GraphTest {
             for (Node node : nodesOf(graph)) {
                 inNodes.addAll(node.getTracks());
             }
-            assertEquals(name, countGroundRails(blueprint), inNodes.size());
+            assertEquals(name, countTracks(blueprint), inNodes.size());
         }
     }
 
     @Test
-    public void elevatedRailsAreReportedRatherThanSilentlyDropped() {
-        // "demi-tour" runs part of its track overhead, so the ground model is
-        // incomplete and has to say so.
-        Graph graph = new Graph(Blueprints.load("demi-tour"));
+    public void aBlueprintWithOverheadTrackIsModelledWholeByDefault() {
+        // "demi-tour" runs part of its track overhead. Nothing is skipped and
+        // so there is nothing to warn about.
+        String blueprint = Blueprints.load("demi-tour");
+        Graph graph = new Graph(blueprint);
+        assertTrue(graph.getWarnings().toString(), graph.getWarnings().isEmpty());
+
+        Set<Track> inNodes = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Node node : nodesOf(graph)) {
+            inNodes.addAll(node.getTracks());
+        }
+        assertEquals(countTracks(blueprint), inNodes.size());
+        assertTrue(inNodes.stream().anyMatch(track -> track.getName().startsWith("elevated-")));
+        assertTrue(inNodes.stream().anyMatch(Track::isRamp));
+    }
+
+    @Test
+    public void theGroundNetworkCanStillBeAnalysedOnItsOwn() {
+        // Opting out cuts the model at every ramp, and says which rails it left.
+        Graph graph = new Graph(Blueprints.load("demi-tour"), false);
         assertFalse(graph.getWarnings().isEmpty());
         assertTrue(graph.getWarnings().toString(),
                 graph.getWarnings().stream().anyMatch(warning -> warning.contains("elevated")));
         assertTrue(graph.getWarnings().toString(),
                 graph.getWarnings().stream().anyMatch(warning -> warning.contains("rail-ramp")));
+        for (Node node : nodesOf(graph)) {
+            for (Track track : node.getTracks()) {
+                assertFalse(track.getName(), track.getName().startsWith("elevated-"));
+            }
+        }
 
-        // A purely ground-level blueprint has nothing to report.
+        // A purely ground-level blueprint has nothing to report either way.
         assertTrue(new Graph(Blueprints.load("t-curve")).getWarnings().isEmpty());
     }
 
@@ -143,6 +168,76 @@ public class GraphTest {
                 .filter(section -> section.getNodes().size() > 1)
                 .count();
         assertTrue("expected crossovers to merge sections, found " + crossings, crossings > 0);
+    }
+
+    @Test
+    public void elevatedTrackIsReachedThroughARampAndNowhereElse() {
+        Graph graph = new Graph(Blueprints.load("elevated-deadlock"));
+
+        // A ramp carries no signal, so a block runs straight through it from
+        // one level to the other - which is the only way the two levels meet.
+        for (Section section : graph.getSections()) {
+            if (levelsIn(section).size() > 1) {
+                assertTrue("a section spans both levels without a ramp",
+                        hasRamp(section));
+            }
+        }
+        assertTrue(graph.getSections().stream().anyMatch(GraphTest::hasRamp));
+    }
+
+    @Test
+    public void aFlyoverDoesNotBlockTheTrackBeneathIt() {
+        // This blueprint runs ground track under the elevated loop. The two do
+        // overlap looking straight down, and must still not share a block:
+        // their collision masks in the game are disjoint.
+        String blueprint = Blueprints.load("elevated-overlap-deadlock");
+        Graph graph = new Graph(blueprint);
+        RailNetwork network = new RailNetwork(new Matrix(blueprint).getEntities(), true);
+
+        int overlappingInPlanView = 0;
+        for (Track ground : network.getTracks()) {
+            for (Track elevated : network.getTracks()) {
+                if (ground.isRamp() || elevated.isRamp()
+                        || isElevated(ground) || !isElevated(elevated)) {
+                    continue;
+                }
+                if (Polylines.cross(ground.getCentreLine(), elevated.getCentreLine())) {
+                    overlappingInPlanView++;
+                }
+            }
+        }
+        assertTrue("expected the blueprint to run track under the flyover",
+                overlappingInPlanView > 0);
+
+        for (Track track : network.getTracks()) {
+            for (Track crossing : network.crossing(track)) {
+                if (track.isRamp() || crossing.isRamp()) {
+                    continue;
+                }
+                assertEquals("a flyover was treated as blocking the track beneath it",
+                        isElevated(track), isElevated(crossing));
+            }
+        }
+        for (Section section : graph.getSections()) {
+            if (levelsIn(section).size() > 1) {
+                assertTrue("a section spans both levels without a ramp", hasRamp(section));
+            }
+        }
+    }
+
+    @Test
+    public void trackLaidUnderAFlyoverDoesNotChangeItsVerdict() {
+        // Same elevated loop in both blueprints; the second one adds a ground
+        // network underneath. The answer has to be the same.
+        Graph alone = new Graph(Blueprints.load("elevated-deadlock"));
+        Graph withTrackBeneath = new Graph(Blueprints.load("elevated-overlap-deadlock"));
+
+        assertEquals(inputsOf(alone), inputsOf(withTrackBeneath));
+        assertEquals(deadlocksOf(alone), deadlocksOf(withTrackBeneath));
+        assertTrue("the elevated loop is expected to deadlock", deadlocksOf(alone) > 0);
+
+        // The ground network really is there, it just does not interfere.
+        assertTrue(withTrackBeneath.getSections().size() > alone.getSections().size());
     }
 
     @Test
@@ -160,7 +255,7 @@ public class GraphTest {
         for (Node node : nodesOf(graph)) {
             inNodes.addAll(node.getTracks());
         }
-        assertEquals(countGroundRails(blueprint), inNodes.size());
+        assertEquals(countTracks(blueprint), inNodes.size());
         // Every rail of a 1.1 export is a legacy shape once converted.
         assertTrue(inNodes.stream().allMatch(track -> track.getName().startsWith("legacy-")));
         assertTrue(nodesOf(graph).stream().anyMatch(Node::getIsInput));
@@ -173,17 +268,54 @@ public class GraphTest {
         assertTrue(new Graph(null).getSections().isEmpty());
     }
 
+    private static boolean isElevated(Track track) {
+        return track.blocksLayer(RailGeometry.ELEVATED_LAYER)
+                && !track.blocksLayer(RailGeometry.GROUND_LAYER);
+    }
+
+    /** Which of the two levels the tracks of a section sit on. */
+    private static Set<Integer> levelsIn(Section section) {
+        Set<Integer> levels = new HashSet<>();
+        for (Node node : section.getNodes()) {
+            for (Track track : node.getTracks()) {
+                if (track.isRamp()) {
+                    levels.add(RailGeometry.GROUND_LAYER);
+                    levels.add(RailGeometry.ELEVATED_LAYER);
+                } else {
+                    levels.add(isElevated(track)
+                            ? RailGeometry.ELEVATED_LAYER : RailGeometry.GROUND_LAYER);
+                }
+            }
+        }
+        return levels;
+    }
+
+    private static boolean hasRamp(Section section) {
+        return section.getNodes().stream()
+                .flatMap(node -> node.getTracks().stream())
+                .anyMatch(Track::isRamp);
+    }
+
+    private static long inputsOf(Graph graph) {
+        return nodesOf(graph).stream().filter(Node::getIsInput).count();
+    }
+
+    private static long deadlocksOf(Graph graph) {
+        List<Result> results = new DeadlockAnalyser(graph).deadlockCheck();
+        return results.stream().filter(Result::getIsDeadlock).count();
+    }
+
     private static List<Node> nodesOf(Graph graph) {
         List<Node> nodes = new ArrayList<>();
         graph.getSections().forEach(section -> nodes.addAll(section.getNodes()));
         return nodes;
     }
 
-    private static int countGroundRails(String blueprint) {
+    /** Every entity of the blueprint a train can actually run along. */
+    private static int countTracks(String blueprint) {
         int count = 0;
         for (Entity entity : new Matrix(blueprint).getEntities()) {
-            if (RailGeometry.isRail(entity.getName())
-                    && !RailGeometry.isElevated(entity.getName())) {
+            if (RailGeometry.isRail(entity.getName())) {
                 count++;
             }
         }

@@ -30,7 +30,10 @@ import java.util.Set;
  * three independently published 2.0 blueprint books: of the 55&nbsp;000 rail
  * ends in them, every end at a diagonal or half-diagonal heading matches
  * another end exactly, and the only unmatched ends are orthogonal ones running
- * off the edge of a blueprint or elevated rails meeting a ramp.
+ * off the edge of a blueprint.
+ *
+ * <p>The elevated shapes turned out to have exactly the geometry of their
+ * ground counterparts, so they share a table and differ only in their layer.
  */
 public final class RailGeometry {
 
@@ -39,6 +42,9 @@ public final class RailGeometry {
 
     /** Rails carried by rail supports. Only reachable through a {@code rail-ramp}. */
     public static final int ELEVATED_LAYER = 1;
+
+    /** A ramp climbs 16 tiles, straight in plan view. */
+    private static final double RAMP_LENGTH = 16.0;
 
     /**
      * Arc lengths in tiles, as published by the Factorio developers. A straight
@@ -66,21 +72,38 @@ public final class RailGeometry {
      *                     a curve, fitted so the curve comes out as long as the
      *                     real one. Zero for a straight rail
      */
-    private record Piece(int layer, double length, double handleLength, int[][] ends) {
+    private record Piece(double length, double handleLength, int[][] ends) {
+
+        /**
+         * The layers this piece blocks, which is what decides whether it can be
+         * crossed. Normally that is just the layer it sits on - a ground rail
+         * and an elevated rail have disjoint collision masks and pass over each
+         * other freely. A {@code rail-ramp} carries both masks, so nothing may
+         * cross it at either level.
+         */
+        boolean blocksLayer(int layer) {
+            for (int[] end : ends) {
+                if (end[LAYER] == layer) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private static final Map<String, Map<Integer, Piece>> PIECES = new LinkedHashMap<>();
 
+    /** Index of the layer inside an end triple-turned-quadruple. */
+    private static final int LAYER = 3;
+
     /**
-     * Rail entities that exist but carry no geometry here. They are recognised
-     * so the analyser can say so rather than silently dropping a rail.
+     * Rail entities that carry no train and so take no part in the model.
      *
-     * <p>{@code rail-ramp} is the piece that lifts a ground rail onto the
-     * elevated layer and {@code rail-support} is the pillar holding elevated
-     * rails up. Both still need their ends measured before elevated networks
-     * can be analysed; see {@link #ELEVATED_LAYER}.
+     * <p>A {@code rail-support} is the pillar an elevated rail rests on. It has
+     * no ends of its own - the game requires it to overlap an elevated rail
+     * rather than to join one - so ignoring it loses nothing.
      */
-    private static final Set<String> UNMAPPED_RAILS = Set.of("rail-ramp", "rail-support");
+    private static final Set<String> NON_TRACK_RAILS = Set.of("rail-support");
 
     static {
         // A straight rail spans a 2x2 block, so its ends sit one tile out from
@@ -137,6 +160,12 @@ public final class RailGeometry {
 
         register("legacy-curved-rail", GROUND_LAYER,
                 rotations(ends(1, 4, 8, -2, -3, 14), ends(-1, 4, 8, 2, -3, 2)));
+
+        // The only way between the two layers. A ramp is straight in plan view
+        // and 16 tiles long, with its ground end behind it and its elevated end
+        // in the direction it faces. It takes no signal, so a block runs
+        // straight through a ramp from one layer to the other.
+        registerRamp();
     }
 
     private RailGeometry() {
@@ -148,11 +177,19 @@ public final class RailGeometry {
     }
 
     /**
-     * Whether the named entity is a rail that exists in the game but has no
-     * geometry here, so a blueprint containing it cannot be analysed fully.
+     * Whether the named entity is a rail-related entity that carries no train,
+     * and so is ignored rather than modelled.
      */
-    public static boolean isUnmappedRail(String name) {
-        return UNMAPPED_RAILS.contains(name);
+    public static boolean isNonTrackRail(String name) {
+        return NON_TRACK_RAILS.contains(name);
+    }
+
+    /**
+     * Whether the rail blocks the given layer, and can therefore be crossed by
+     * rails on it. Everything but a {@code rail-ramp} blocks exactly one layer.
+     */
+    public static boolean blocksLayer(String name, int direction, int layer) {
+        return piece(name, direction).blocksLayer(layer);
     }
 
     /** Whether the rail carries geometry for this particular orientation. */
@@ -161,19 +198,28 @@ public final class RailGeometry {
         return byDirection != null && byDirection.containsKey(direction);
     }
 
-    /** Which layer the rail lives on, so ground and elevated networks stay apart. */
-    public static int layer(String name) {
-        Map<Integer, Piece> byDirection = PIECES.get(name);
-        if (byDirection == null) {
-            throw new IllegalArgumentException("not a rail: " + name);
-        }
-        // Every orientation of a rail is on the same layer.
-        return byDirection.values().iterator().next().layer();
+    /**
+     * Whether the rail is one of the elevated shapes, meaning both of its ends
+     * are up on the elevated network. A {@code rail-ramp} is not: it has one
+     * end on each layer.
+     */
+    public static boolean isElevated(String name) {
+        return PIECES.containsKey(name)
+                && !blocksLayer(name, firstDirection(name), GROUND_LAYER);
     }
 
-    /** Whether the rail is one of the elevated shapes. */
-    public static boolean isElevated(String name) {
-        return PIECES.containsKey(name) && layer(name) == ELEVATED_LAYER;
+    /** Whether the rail joins the two layers, which only a {@code rail-ramp} does. */
+    public static boolean isRamp(String name) {
+        if (!PIECES.containsKey(name)) {
+            return false;
+        }
+        int direction = firstDirection(name);
+        return blocksLayer(name, direction, GROUND_LAYER)
+                && blocksLayer(name, direction, ELEVATED_LAYER);
+    }
+
+    private static int firstDirection(String name) {
+        return PIECES.get(name).keySet().iterator().next();
     }
 
     /** Arc length of the rail in tiles, used to size nodes for the performance analysis. */
@@ -189,7 +235,8 @@ public final class RailGeometry {
         int[][] offsets = piece(name, direction).ends();
         RailEnd[] result = new RailEnd[offsets.length];
         for (int i = 0; i < offsets.length; i++) {
-            result[i] = new RailEnd(x + offsets[i][0], y + offsets[i][1], offsets[i][2]);
+            result[i] = new RailEnd(
+                    x + offsets[i][0], y + offsets[i][1], offsets[i][2], offsets[i][LAYER]);
         }
         return result;
     }
@@ -313,8 +360,32 @@ public final class RailGeometry {
         return found;
     }
 
+    /** Two ends whose layer is filled in when the shape is registered. */
     private static int[][] ends(int dx1, int dy1, int heading1, int dx2, int dy2, int heading2) {
-        return new int[][] { { dx1, dy1, heading1 }, { dx2, dy2, heading2 } };
+        return new int[][] { { dx1, dy1, heading1, GROUND_LAYER }, { dx2, dy2, heading2, GROUND_LAYER } };
+    }
+
+    /**
+     * Registers {@code rail-ramp}, the one shape whose two ends are on
+     * different layers. Direction 4 was read off published blueprints - its
+     * ground end is 8 tiles behind the entity and its elevated end 8 tiles
+     * ahead - and the other three orientations are rotations of it.
+     */
+    private static void registerRamp() {
+        int[][] seed = {
+                { -8, 0, 12, GROUND_LAYER },
+                { 8, 0, 4, ELEVATED_LAYER },
+        };
+        Map<Integer, int[][]> byDirection = new LinkedHashMap<>();
+        int[][] current = seed;
+        for (int quarter = 0; quarter < 4; quarter++) {
+            byDirection.put((4 + quarter * 4) % Direction.COUNT, current);
+            current = rotate(current);
+        }
+        Map<Integer, Piece> pieces = new LinkedHashMap<>();
+        byDirection.forEach((direction, offsets) ->
+                pieces.put(direction, new Piece(RAMP_LENGTH, 0, offsets)));
+        PIECES.put("rail-ramp", Collections.unmodifiableMap(pieces));
     }
 
     /**
@@ -340,11 +411,12 @@ public final class RailGeometry {
 
     /** Rotates ends a quarter turn clockwise. y points down, so (x,y) becomes (-y,x). */
     private static int[][] rotate(int[][] offsets) {
-        int[][] rotated = new int[offsets.length][3];
+        int[][] rotated = new int[offsets.length][4];
         for (int i = 0; i < offsets.length; i++) {
             rotated[i][0] = -offsets[i][1];
             rotated[i][1] = offsets[i][0];
             rotated[i][2] = Direction.rotate90Clockwise(offsets[i][2]);
+            rotated[i][LAYER] = offsets[i][LAYER];
         }
         return rotated;
     }
@@ -355,9 +427,18 @@ public final class RailGeometry {
             double length = lengthOf(name, direction, offsets);
             boolean straight = offsets[0][2] == Direction.opposite(offsets[1][2]);
             double handle = straight ? 0 : fitHandleLength(offsets, length);
-            pieces.put(direction, new Piece(layer, length, handle, offsets));
+            pieces.put(direction, new Piece(length, handle, onLayer(offsets, layer)));
         });
         PIECES.put(name, Collections.unmodifiableMap(pieces));
+    }
+
+    /** Puts both ends of a shape on one layer, which is true of everything but a ramp. */
+    private static int[][] onLayer(int[][] offsets, int layer) {
+        int[][] placed = new int[offsets.length][4];
+        for (int i = 0; i < offsets.length; i++) {
+            placed[i] = new int[] { offsets[i][0], offsets[i][1], offsets[i][2], layer };
+        }
+        return placed;
     }
 
     private static double lengthOf(String name, int direction, int[][] offsets) {
@@ -371,6 +452,7 @@ public final class RailGeometry {
             case "curved-rail-a", "elevated-curved-rail-a" -> CURVED_A_LENGTH;
             case "curved-rail-b", "elevated-curved-rail-b" -> CURVED_B_LENGTH;
             case "legacy-curved-rail" -> LEGACY_CURVED_LENGTH;
+            case "rail-ramp" -> RAMP_LENGTH;
             default -> throw new IllegalArgumentException("no length known for " + name);
         };
     }
