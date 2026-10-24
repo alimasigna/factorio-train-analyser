@@ -58,6 +58,12 @@ public class App {
 
     public boolean analyse(String blueprint) throws JsonIOException, IOException{
         Graph graph = new Graph(blueprint);
+        for (String warning : graph.getWarnings()) {
+            System.out.println("Note: " + warning);
+        }
+        if (graph.getSections().isEmpty()) {
+            System.out.println("No rails were found in the blueprint.");
+        }
         DeadlockAnalyser analyser = new DeadlockAnalyser(graph);
         ArrayList<Result> result = analyser.deadlockCheck();
         exportToJson(result, graph);

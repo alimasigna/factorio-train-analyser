@@ -1,164 +1,160 @@
 package factorio.train.analyser;
 
 import factorio.train.analyser.decoder.Decoder;
-import factorio.train.analyser.graph.Track;
+import factorio.train.analyser.jsonmodels.Blueprint;
 import factorio.train.analyser.jsonmodels.Entity;
 import factorio.train.analyser.jsonmodels.Json;
 import factorio.train.analyser.jsonmodels.JsonBuilder;
+import factorio.train.analyser.jsonmodels.LegacyBlueprint;
+import factorio.train.analyser.rail.RailGeometry;
 
 import java.util.ArrayList;
+import java.util.List;
 
-/** This class is used to generate a 2D matrix from a given JsonString.
- * */
+/**
+ * Reads a blueprint string and hands out the entities the analyser cares about.
+ *
+ * <p>The 1.1 version of this class also normalised every position into a
+ * doubled, non-negative 2D array so that rails could be found by their
+ * coordinates. The rail model no longer searches for rails by position - it
+ * matches rail ends against each other - so positions are now kept exactly as
+ * the blueprint states them, negative values and halves included, and the
+ * indices live in
+ * {@link factorio.train.analyser.graph.RailNetwork} instead. The grid here is
+ * only built for {@link #toString()}, which is a debugging aid.
+ */
 public class Matrix {
 
-    /** This is the Json from which the Matrix will be generated from.
-     * */
+    private static final String TRAIN_STOP = "train-stop";
+    private static final String RAIL_SIGNAL = "rail-signal";
+    private static final String RAIL_CHAIN_SIGNAL = "rail-chain-signal";
+
+    /** The decoded blueprint string. */
     private Json json;
 
-    /** This array holds all entites extracted from the json.
-     * */
-    private Entity[] entities;
+    /** The rails, signals and train stops of the blueprint. */
+    private List<Entity> entities = new ArrayList<>();
 
-    /** This array will represent the given json in a matrix.
-     * */
-    private ArrayList<Entity>[][] matrix;
+    /** Anything about the blueprint the caller should be told. */
+    private List<String> warnings = new ArrayList<>();
 
-    /** Creates a speicific matrix object with a given jsonString.
-     * @param encodedJson The encoded JsonString that will be used to generate a Json object.
-     * */
-    public Matrix(String encodedJson){
+    /**
+     * Reads a blueprint.
+     *
+     * @param encodedJson the encoded blueprint string
+     */
+    public Matrix(String encodedJson) {
         setJson(encodedJson);
         setEntities();
-        setMatrix();
     }
 
-    public Matrix() {}
+    public Matrix() {
+    }
 
-    /** This will initialize the private Json field with a given Json String.
-     * @param encodedJson The encoded JsonString that will be parsed into a Json object.
-     * */
+    /** The rails, signals and train stops of the blueprint, in blueprint order. */
+    public List<Entity> getEntities() {
+        return entities;
+    }
+
+    /**
+     * Notes about how the blueprint was read: which blueprint of a book was
+     * picked, and whether it had to be converted from a pre-2.0 export.
+     */
+    public List<String> getWarnings() {
+        return warnings;
+    }
+
+    /** The blueprint that is being analysed, or null if the string could not be read. */
+    public Blueprint getBlueprint() {
+        return json == null ? null : json.getBlueprint();
+    }
+
+    /** Every blueprint the string contains. More than one means it was a book. */
+    public List<Blueprint> getAllBlueprints() {
+        return json == null ? List.of() : json.flatten();
+    }
+
     private void setJson(String encodedJson) {
         Decoder decoder = new Decoder();
         String decodedJson = decoder.decode(encodedJson);
-        JsonBuilder builder = new JsonBuilder();
-        json = builder.create(decodedJson);
+        if (decodedJson == null) {
+            return;
+        }
+        json = new JsonBuilder().create(decodedJson);
     }
 
-    /** This setter will init the entities field and filter it.
-     * */
     private void setEntities() {
-        entities = json.getBlueprint().getEntities();
-        filterEntities();
-    }
-
-    /** This getter will return the matrix field.
-     * @return The matrix field.
-     * */
-    public ArrayList<Entity>[][] getMatrix() {
-        return matrix;
-    }
-
-    /** This will initialize the private matrix field from the Json field.
-     * */
-    private void setMatrix() {
-        if(json == null || entities==null) return;
-
-        double lowX = entities[0].getPosition().getX();
-        double highX = entities[0].getPosition().getX();
-        double lowY = entities[0].getPosition().getY();
-        double highY = entities[0].getPosition().getY();
-
-        for(Entity entity : entities) {
-            if(entity.getPosition().getX() < lowX){
-                lowX = entity.getPosition().getX();
-            }
-            if(entity.getPosition().getX() > highX){
-                highX = entity.getPosition().getX();
-            }
-            if(entity.getPosition().getY() < lowY) {
-                lowY = entity.getPosition().getY();
-            }
-            if(entity.getPosition().getY() > highY) {
-                highY = entity.getPosition().getY();
-            }
+        Blueprint blueprint = getBlueprint();
+        if (blueprint == null || blueprint.getEntities() == null) {
+            return;
         }
-
-        lowX *= 2;  //double size so that we can map .5 vals
-        highX *= 2;
-        lowY *= 2;
-        highY *= 2;
-        //calculates height and width of the array
-        int xDimensionLength = ((int) Math.abs(highX - lowX) + 1);
-        int yDimensionLength = ((int) Math.abs(highY - lowY) + 1);
-        //creating a 2D array with an array list full of enitities
-        matrix = new ArrayList[xDimensionLength][yDimensionLength];
-        //writing entites in matrix
-        for(Entity entity : entities) {
-            //normalyzing of koords
-            int adjustedX = (int) (entity.getPosition().getX()*2 - lowX); //double size so that we can map .5 vals
-            int adjustedY = (int) (entity.getPosition().getY()*2 - lowY);
-            entity.getPosition().setX(adjustedX);
-            entity.getPosition().setY(adjustedY);
-            if(matrix[adjustedX][adjustedY] == null)
-                matrix[adjustedX][adjustedY] = new ArrayList<>();
-            matrix[adjustedX][adjustedY].add(entity);
+        List<Blueprint> all = getAllBlueprints();
+        if (all.size() > 1) {
+            warnings.add("blueprint string holds " + all.size()
+                    + " blueprints; analysing the first one"
+                    + (blueprint.getLabel() == null ? "" : " (\"" + blueprint.getLabel() + "\")"));
+        }
+        boolean legacy = LegacyBlueprint.needsMigration(blueprint);
+        if (legacy) {
+            warnings.add("blueprint predates the 2.0 rail rework; "
+                    + "its rails were converted the way the game converts them on import");
+        }
+        for (Entity stated : blueprint.getEntities()) {
+            Entity entity = legacy ? LegacyBlueprint.migrate(stated) : stated;
+            if (isRelevant(entity.getName())) {
+                entities.add(entity);
+            }
         }
     }
 
-    //this method converts entities to tracks
-    public ArrayList<Track>[][] convertToTracks() {
-        ArrayList<Track>[][] trackMatrix = new ArrayList[matrix.length][matrix[0].length]; //this assumes 0 is not null
-        for( int x = 0; x < matrix.length; x++) {
-            for( int y = 0; y < matrix[x].length; y++) {
-                if(matrix[x][y] == null) continue;
-                trackMatrix[x][y] = new ArrayList<>();
-                for( int i = 0; i < matrix[x][y].size(); i++) {
-                    Entity entry = matrix[x][y].get(i);
-                    if(entry.getName().equals("straight-rail") || entry.getName().equals("curved-rail") ) //we only use rails skip everything
-                        trackMatrix[x][y].add(
-                                new Track(null,
-                                    entry
-                                )
-                    );
-                }
-            }
-        }
-        return trackMatrix;
+    /**
+     * Whether an entity takes part in the train route model. Everything the
+     * player placed ends up in a blueprint, but only rails, signals and train
+     * stops matter here.
+     */
+    private static boolean isRelevant(String name) {
+        return RailGeometry.isRail(name)
+                || RailGeometry.isUnmappedRail(name)
+                || RAIL_SIGNAL.equals(name)
+                || RAIL_CHAIN_SIGNAL.equals(name)
+                || TRAIN_STOP.equals(name);
     }
-    /** This method formats the matrix field into a String.
-     * @return The String representation of the matrix field.
-     * */
+
+    /**
+     * Renders the blueprint as a coarse map, one character per tile: {@code #}
+     * for a single entity, {@code +} where several overlap and {@code .} for
+     * empty ground.
+     */
     @Override
     public String toString() {
-        StringBuilder stringifiedMatrix = new StringBuilder();
-        if(matrix == null) return stringifiedMatrix.toString();
-        for (ArrayList<Entity>[] arrayLists : matrix) {
-            for (ArrayList<Entity> arrayList : arrayLists) {
-                if (arrayList == null) {
-                    stringifiedMatrix.append(" . ");
-                    continue;
-                }
-                if (arrayList.size() > 1) {
-                    stringifiedMatrix.append(" + ");
-                    continue;
-                }
-                stringifiedMatrix.append(" # ");
-            }
-            stringifiedMatrix.append("\n");
+        if (entities.isEmpty()) {
+            return "";
         }
-        return stringifiedMatrix.toString();
+        int lowX = Integer.MAX_VALUE;
+        int lowY = Integer.MAX_VALUE;
+        int highX = Integer.MIN_VALUE;
+        int highY = Integer.MIN_VALUE;
+        for (Entity entity : entities) {
+            lowX = Math.min(lowX, tile(entity.getPosition().getX()));
+            highX = Math.max(highX, tile(entity.getPosition().getX()));
+            lowY = Math.min(lowY, tile(entity.getPosition().getY()));
+            highY = Math.max(highY, tile(entity.getPosition().getY()));
+        }
+        int[][] counts = new int[highY - lowY + 1][highX - lowX + 1];
+        for (Entity entity : entities) {
+            counts[tile(entity.getPosition().getY()) - lowY][tile(entity.getPosition().getX()) - lowX]++;
+        }
+        StringBuilder rendered = new StringBuilder();
+        for (int[] row : counts) {
+            for (int count : row) {
+                rendered.append(count == 0 ? " . " : count == 1 ? " # " : " + ");
+            }
+            rendered.append("\n");
+        }
+        return rendered.toString();
     }
 
-    /** This method filters the entities field. The goal is to remove all non-train-related entities.
-     * */
-    private void filterEntities() {
-        ArrayList<Entity> buffer = new ArrayList<>();
-        for(Entity entity : entities) {
-            switch (entity.getName()) {
-                case "curved-rail", "straight-rail", "train-stop", "rail-signal", "rail-chain-signal" -> buffer.add(entity);
-            }
-        }
-        entities = buffer.toArray(new Entity[0]);
+    private static int tile(double coordinate) {
+        return (int) Math.floor(coordinate);
     }
 }

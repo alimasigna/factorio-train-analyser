@@ -7,7 +7,7 @@ public class Node {
     private transient ArrayList<ArrayList<Node>> nextNodes;
     private transient ArrayList<ArrayList<Node>> protectedFrom;
     private ArrayList<Track> tracks;
-    private int length;
+    private double length;
     private boolean isOutput;
     private boolean isInput;
 
@@ -48,7 +48,8 @@ public class Node {
         return nodeId;
     }
 
-    public int getLength() {
+    /** Combined arc length in tiles of every track in this node. */
+    public double getLength() {
         return length;
     }
 
