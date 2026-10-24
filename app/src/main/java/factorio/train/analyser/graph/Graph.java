@@ -1,88 +1,132 @@
 package factorio.train.analyser.graph;
 
 import factorio.train.analyser.Matrix;
-import factorio.train.analyser.jsonmodels.Entity;
+import factorio.train.analyser.graph.RailNetwork.SignalPlacement;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
+/**
+ * The train route model of a blueprint: every section, each holding the nodes a
+ * train can occupy, and the references between them that the deadlock analysis
+ * walks.
+ *
+ * <p>Generation runs in four steps, unchanged in shape from the 1.1 version of
+ * the tool. Connected rails are collected into nodes; nodes that cross each
+ * other are merged into sections; the signal relations the tracks picked up
+ * during parsing are lifted onto their nodes; and the nodes at the edge of the
+ * blueprint are marked as the junction's inputs and outputs.
+ *
+ * <p>What changed for 2.0 is underneath: connections, signals and crossings
+ * now come from {@link RailNetwork}, which derives them from rail geometry
+ * rather than from tables of neighbour positions measured by hand in the game.
+ * That is what lets the new {@code half-diagonal-rail} and the split
+ * {@code curved-rail-a}/{@code curved-rail-b} work without a case of their own.
+ */
 public class Graph {
     private ArrayList<Section> sections;
 
     private transient ArrayList<Node> nodes;
-    private transient Matrix matrix;
+    private transient RailNetwork network;
+    private transient List<String> warnings = new ArrayList<>();
     private transient static int numOfGeneratedGraphs = 0;
     private int graphId;
 
+    /**
+     * Builds the model of a blueprint. Elevated rails are left out; see
+     * {@link #Graph(String, boolean)}.
+     *
+     * @param encodedString the encoded blueprint string
+     */
     public Graph(String encodedString) {
-        nodes = new ArrayList<>();
-        sections = new ArrayList<>();
-        setMatrix(encodedString);
-        setSections();
-        graphId = ++numOfGeneratedGraphs;
+        this(encodedString, false);
     }
 
-    private void setMatrix(String encodedString) {
-        if (encodedString != null)
-            matrix = new Matrix(encodedString);
+    /**
+     * Builds the model of a blueprint.
+     *
+     * @param encodedString the encoded blueprint string
+     * @param withElevated  whether to include the elevated rail layer. Elevated
+     *                      rails have the same shapes as their ground
+     *                      counterparts and are modelled on a layer of their
+     *                      own, but the {@code rail-ramp} that joins the two
+     *                      layers has no geometry yet, so an elevated network
+     *                      currently comes out disconnected from the ground one
+     */
+    public Graph(String encodedString, boolean withElevated) {
+        nodes = new ArrayList<>();
+        sections = new ArrayList<>();
+        if (encodedString != null) {
+            Matrix matrix = new Matrix(encodedString);
+            warnings.addAll(matrix.getWarnings());
+            network = new RailNetwork(matrix.getEntities(), withElevated);
+            warnings.addAll(network.getWarnings());
+        }
+        setSections();
+        graphId = ++numOfGeneratedGraphs;
     }
 
     public int getGraphId() {
         return graphId;
     }
 
+    public ArrayList<Section> getSections() {
+        return sections;
+    }
+
     /**
-     * Sets the sections of the graph based on the tracks in the matrix.
-     * The method first checks if the matrix is null. If it is, it returns without
-     * doing anything.
-     * It then converts the matrix to a 2D array of tracks and iterates over each
-     * track. If a track is already known, it is skipped.
-     * For each new track, it parses the track to nodes, creates a new section with
-     * the nodes, and adds the section to the list of sections. It then resets the
-     * nodes.
-     * After checking all tracks, it merges the sections, maps the track fields to
-     * the node fields, and generates the end sections.
+     * Anything about the blueprint the caller should be told: which blueprint of
+     * a book was taken, whether it had to be converted from a pre-2.0 export,
+     * and which rails were recognised but left out of the model.
+     */
+    public List<String> getWarnings() {
+        return Collections.unmodifiableList(warnings);
+    }
+
+    /**
+     * Fills the sections of the graph from the rails of the blueprint.
+     *
+     * <p>Every rail that has not been visited yet starts a parse run, which
+     * collects all nodes reachable from it without passing a signal into one
+     * section. Those sections are then merged where they cross, the signal
+     * relations are lifted from tracks onto nodes, and the input and output
+     * flags are set.
      */
     private void setSections() {
-        if (matrix == null)
+        if (network == null) {
             return;
-
-        ArrayList<Track> knownTracks = new ArrayList<>();
-        ArrayList<Track>[][] tracks = matrix.convertToTracks();
-
-        for (int x = 0; x < tracks.length; x++) { // go through all tracks, we only go through tracks. signals should be
-                                                  // discovered this way too
-            for (int y = 0; y < tracks[x].length; y++) {
-                if (tracks[x][y] == null)
-                    continue;
-                for (int i = 0; i < tracks[x][y].size(); i++) {
-                    Track track = tracks[x][y].get(i);
-                    if (knownTracks.contains(track))
-                        continue; // we only use tracks skip everything
-                    parseTracksToNodes(track, null, tracks, knownTracks);
-                    Section section = new Section(nodes);
-                    sections.add(section);
-                    nodes = new ArrayList<>(); // resetting nodes after each run
-                }
-            }
         }
-        mergeSections(tracks);
-        mapTrackFieldToNodeField(tracks);
+
+        Set<Track> knownTracks = Collections.newSetFromMap(new IdentityHashMap<>());
+
+        for (Track track : network.getTracks()) {
+            if (knownTracks.contains(track)) {
+                continue;
+            }
+            parseTracksToNodes(track, null, knownTracks);
+            if (!nodes.isEmpty()) {
+                sections.add(new Section(nodes));
+            }
+            nodes = new ArrayList<>(); // resetting nodes after each run
+        }
+        mergeSections();
+        mapTrackFieldToNodeField();
         setIoFlags();
     }
 
     /**
-     * Sets the input and output flags for each node in all sections of the graph.
-     * 
-     * <p>
-     * This method iterates over all sections, and for each section, it iterates
-     * over all nodes.
-     * If a node is an end node, it checks if the node has no next nodes and no
-     * dependencies.
-     * If so, it sets the node as an output node. Otherwise, it sets the node as an
-     * input node.
-     * </p>
+     * Marks the nodes at the edge of the blueprint as the junction's inputs and
+     * outputs.
+     *
+     * <p>A node with an open end and nothing to go to is an output: trains
+     * leave the junction there and it is assumed never to be blocked. A node
+     * with an open end that does lead somewhere is an input, where the analysis
+     * starts trains. A node can be both.
      */
     private void setIoFlags() {
         for (Section section : sections) {
@@ -91,8 +135,8 @@ public class Graph {
                     if (node.getNextNodes().isEmpty()) {
                         node.setIsOutput(true);
                     } else {
-                        //check if next nodes are also referencing the current node, "should" be null safe lel
-                        if(node.getNextNodes().get(0).get(0).getNextNodesMerged().contains(node))
+                        // check if next nodes are also referencing the current node, "should" be null safe lel
+                        if (node.getNextNodes().get(0).get(0).getNextNodesMerged().contains(node))
                             node.setIsOutput(true);
                         node.setIsInput(true);
                     }
@@ -102,92 +146,69 @@ public class Graph {
     }
 
     /**
-     * Maps the fields of tracks to the corresponding fields of nodes.
-     * The method iterates over each track in the 2D array of tracks. If a track is
-     * an end track, it sets the isEndNode field of its nodes to true.
-     * If a track has no outgoing tracks and no dependent tracks, it is skipped.
-     * For each track that has outgoing or dependent tracks, it sets the next nodes
-     * and dependent nodes of its nodes to the nodes of the outgoing and dependent
-     * tracks, respectively.
-     *
-     * @param tracks The 2D array of tracks representing the graph.
+     * Lifts the relations the tracks picked up during parsing onto the nodes
+     * they belong to, so that a node knows which nodes it leads into and which
+     * ones protect it through a chain signal. Tracks with an open end mark
+     * their nodes as end nodes, which {@link #setIoFlags()} needs.
      */
-    private void mapTrackFieldToNodeField(ArrayList<Track>[][] tracks) {
-        for (int x = 0; x < tracks.length; x++) {
-            for (int y = 0; y < tracks[x].length; y++) {
-                if (tracks[x][y] == null)
-                    continue;
-                for (int i = 0; i < tracks[x][y].size(); i++) {
-                    Track track = tracks[x][y].get(i);
-
-                    if (track.getIsEndTrack()) {
-                        for (Node endNode : track.getNodes()) {
-                            endNode.setIsEndNode(true);
-                        }
-                    }
-
-                    if (track.getGoesTo().isEmpty() && track.getProtectedFrom().isEmpty())
-                        continue;
-
-                    ArrayList<Node> parentNodes = track.getNodes();
-                    ArrayList<Track> outGoingTracks = track.getGoesTo();
-                    ArrayList<Track> protectedFromTracks = track.getProtectedFrom();
-                    
-                    //get all nodes the track is referencing
-                    ArrayList<Node> referencedNextNodes = new ArrayList<>();
-                    for(Track outGoingTrack : outGoingTracks) {
-                        referencedNextNodes.addAll(outGoingTrack.getNodes());
-                    }
-                    ArrayList<Node> referencedProtectedFromNodes = new ArrayList<>();
-                    for(Track protectedFromTrack : protectedFromTracks) {
-                        referencedProtectedFromNodes.addAll(protectedFromTrack.getNodes());
-                    }
-
-                    //setting the fields
-                    for (Node parentNode : parentNodes) {
-                        if(!referencedNextNodes.isEmpty())
-                            parentNode.setNextNodes(referencedNextNodes);
-                        if(!referencedProtectedFromNodes.isEmpty())
-                            parentNode.setProtectedFrom(referencedProtectedFromNodes);
-                    }
+    private void mapTrackFieldToNodeField() {
+        for (Track track : network.getTracks()) {
+            if (track.getIsEndTrack()) {
+                for (Node endNode : track.getNodes()) {
+                    endNode.setIsEndNode(true);
                 }
+            }
+
+            if (track.getGoesTo().isEmpty() && track.getProtectedFrom().isEmpty())
+                continue;
+
+            ArrayList<Node> parentNodes = track.getNodes();
+
+            // get all nodes the track is referencing
+            ArrayList<Node> referencedNextNodes = new ArrayList<>();
+            for (Track outGoingTrack : track.getGoesTo()) {
+                referencedNextNodes.addAll(outGoingTrack.getNodes());
+            }
+            ArrayList<Node> referencedProtectedFromNodes = new ArrayList<>();
+            for (Track protectedFromTrack : track.getProtectedFrom()) {
+                referencedProtectedFromNodes.addAll(protectedFromTrack.getNodes());
+            }
+
+            // setting the fields
+            for (Node parentNode : parentNodes) {
+                if (!referencedNextNodes.isEmpty())
+                    parentNode.setNextNodes(referencedNextNodes);
+                if (!referencedProtectedFromNodes.isEmpty())
+                    parentNode.setProtectedFrom(referencedProtectedFromNodes);
             }
         }
     }
 
     /**
-     * Merges sections of tracks into a single section.
-     * The method iterates over each section, and for each section, it checks its
-     * nodes. If a node has already been merged, it is ignored.
-     * For each node that hasn't been merged, it checks the tracks in the node and
-     * finds the crossing tracks. It then adds the nodes of the crossing tracks to
-     * the check nodes if they are not already there.
-     * After checking all nodes, it creates a new section with the check nodes and
-     * adds it to the list of merged sections.
-     * Finally, it replaces the original sections with the merged sections.
+     * Merges the sections that overlap in the game into one.
      *
-     * @param tracks The 2D array of tracks representing the graph.
+     * <p>A parse run only follows rails that are connected end to end, so two
+     * rails that cross each other end up in separate sections even though a
+     * train on one of them blocks the other. This walks out from every section
+     * over the crossings of its tracks and collects everything it reaches into a
+     * single section.
      */
-    private void mergeSections(ArrayList<Track>[][] tracks) {
+    private void mergeSections() {
         ArrayList<Section> mergedSections = new ArrayList<>();
 
         for (Section section : sections) {
             Queue<Node> checkNodesQueue = new LinkedList<>(section.getNodes());
             ArrayList<Node> checkNodes = section.getNodes();
-            if (checkNodes.get(0).getHasBeenMerged())
-                continue; // if the node has been merged, we ignore it (it has been merged in the last
-                          // step already
+            if (checkNodes.isEmpty() || checkNodes.get(0).getHasBeenMerged())
+                continue; // already pulled into a section by an earlier round
 
             while (!checkNodesQueue.isEmpty()) {
                 Node checkNode = checkNodesQueue.poll();
                 if (checkNode.getHasBeenMerged())
                     continue;
-                ArrayList<Track> tracksInNodes = checkNode.getTracks();
-                for (Track track : tracksInNodes) {
-                    ArrayList<Track> crossingTracks = filterLookupsToTrack(track.getCrossed(), tracks);
-                    for (Track crossedTrack : crossingTracks) {
-                        ArrayList<Node> toBeAddedNodes = crossedTrack.getNodes();
-                        for (Node addedNode : toBeAddedNodes) { // adding all the found new nodes
+                for (Track track : checkNode.getTracks()) {
+                    for (Track crossedTrack : network.crossing(track)) {
+                        for (Node addedNode : crossedTrack.getNodes()) { // adding all the found new nodes
                             if (!checkNodes.contains(addedNode)) {
                                 checkNodes.add(addedNode);
                                 checkNodesQueue.add(addedNode);
@@ -195,77 +216,67 @@ public class Graph {
                         }
                     }
                 }
-                checkNode.setHasBeenMerged(true); // setThisValue to be ignored in later steps
+                checkNode.setHasBeenMerged(true); // so later rounds skip it
             }
-            Section mergedSection = new Section(checkNodes);
-            mergedSections.add(mergedSection);
+            mergedSections.add(new Section(checkNodes));
         }
         sections = mergedSections;
     }
 
     /**
-     * Connects the current track to the next tracks based on the signals of the
-     * current track.
-     * The method first filters the signals of the current track. If there are any
-     * signals, it checks if the outgoing tracks from the signal contain the first
-     * next track.
-     * If they do, it sets each next track as a destination of the current track
-     * and. If the signal is a rail-chain-signal, it sets the protectedFrom field of the
-     * track.
-     * If they don't, it sets the current track as a destination and, if the signal
-     * is a rail-chain-signal, as a dependency of each next track.
+     * Records which way a signal between two tracks lets trains run.
      *
-     * @param nextTracks   The list of next tracks to be connected.
-     * @param currentTrack The current track to be connected.
-     * @param tracks       The 2D array of tracks representing the graph.
+     * <p>Only the signals standing at the end where {@code nextTracks} attach
+     * say anything about this pair, so the others are skipped. A signal letting
+     * trains out of {@code currentTrack} means the current track leads into the
+     * next ones; a signal letting them in means the opposite. A chain signal
+     * additionally protects whatever lies beyond it, which is what the deadlock
+     * analysis follows.
+     *
+     * @param nextTracks   the tracks on the far side of the signal
+     * @param currentTrack the track the signal stands on
      */
-    private void connectTracks(ArrayList<Track> nextTracks, Track currentTrack, ArrayList<Track>[][] tracks) {
-        if (!nextTracks.isEmpty()) {
-            ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
-            for (Entity signal : signals) {
-                ArrayList<Track> outGoingTracks = filterLookupsToTrack(
-                        LookUp.lookUpOutgoingTracks(signal, currentTrack), tracks);
-                if (outGoingTracks.contains(nextTracks.get(0))) {
-                    for (Track nextTrack : nextTracks) {
-                        currentTrack.setGoesTo(nextTrack);
-                        //if it is a rail-chain-signal, we tell the next track that it is protected from current track
-                        if (signal.getName().equals("rail-chain-signal"))
-                            nextTrack.setProtectedFrom(currentTrack);
-                    }
+    private void connectTracks(List<Track> nextTracks, Track currentTrack) {
+        if (nextTracks.isEmpty()) {
+            return;
+        }
+        for (SignalPlacement placement : network.signalsOn(currentTrack)) {
+            List<Track> beyondSignal = network.connectedAt(currentTrack, placement.endIndex());
+            if (!sharesAny(beyondSignal, nextTracks)) {
+                continue; // this signal guards the other end of the track
+            }
+            for (Track nextTrack : nextTracks) {
+                if (placement.outbound()) {
+                    currentTrack.setGoesTo(nextTrack);
+                    if (placement.isChainSignal())
+                        nextTrack.setProtectedFrom(currentTrack);
                 } else {
-                    for (Track nextTrack : nextTracks) {
-                        nextTrack.setGoesTo(currentTrack);
-                        //if it is a rail-chain-signal, we tell the current track that it is protected from next track
-                        if (signal.getName().equals("rail-chain-signal"))
-                            currentTrack.setProtectedFrom(nextTrack);
-                    }
+                    nextTrack.setGoesTo(currentTrack);
+                    if (placement.isChainSignal())
+                        currentTrack.setProtectedFrom(nextTrack);
                 }
-
             }
         }
     }
 
     /**
-     * Parses tracks into nodes by traversing the graph of tracks recursively.
-     * The method keeps track of visited tracks and known tracks. It determines the
-     * frontier and callback tracks based on the connections of the current track.
-     * It checks if the current track is an ending one, and if the frontier/callback
-     * is behind a signal, it is ignored.
-     * The method then performs a recursion step for the frontier and callback
-     * tracks, skipping tracks that have already been visited or are not in the same
-     * section.
-     * Finally, it merges the callback and frontier nodes and returns the frontier
-     * nodes.
+     * Parses tracks into nodes by traversing the connected rails recursively.
      *
-     * @param currentTrack  The current track being processed.
-     * @param visitedTracks The list of tracks that have been visited.
-     * @param tracks        The 2D array of tracks representing the graph.
-     * @param knownTracks   The list of tracks that are known.
-     * @return A list of nodes representing the frontier nodes after parsing the
-     *         tracks.
+     * <p>The two ends of the current track are split into a frontier set and a
+     * callback set, the callback being the one the recursion arrived from. The
+     * frontier is recursed into first and returns the nodes the current track
+     * joins; the callback is recursed into afterwards and its nodes are
+     * multiplied with the frontier's, which is what keeps sub-paths through a
+     * junction apart. A track whose frontier is empty - an open end, or an end
+     * closed off by a signal - is the base case and starts a fresh node.
+     *
+     * @param currentTrack  the track being processed
+     * @param visitedTracks the path of tracks that led here, null at the start
+     * @param knownTracks   every track any parse run has already visited
+     * @return the frontier nodes the caller joins onto
      */
     private ArrayList<Node> parseTracksToNodes(Track currentTrack, ArrayList<Track> visitedTracks,
-            ArrayList<Track>[][] tracks, ArrayList<Track> knownTracks) {
+            Set<Track> knownTracks) {
 
         // store path callbyvalue
         Track previousTrack;
@@ -279,20 +290,21 @@ public class Graph {
         previousTracks.add(currentTrack);
         knownTracks.add(currentTrack);
 
-        // set frontier and callback
-        ArrayList<Track> in = filterLookupsToTrack(currentTrack.getConnected()[0], tracks);
-        ArrayList<Track> out = filterLookupsToTrack(currentTrack.getConnected()[1], tracks);
-        ArrayList<Track> frontier = new ArrayList<>();
-        ArrayList<Track> callBack = new ArrayList<>();
+        // set frontier and callback. which end is which depends on where the
+        // recursion came from; on the first call the split is arbitrary.
+        List<Track> in = network.connectedAt(currentTrack, 0);
+        List<Track> out = network.connectedAt(currentTrack, 1);
+        List<Track> frontier = new ArrayList<>();
+        List<Track> callBack = new ArrayList<>();
         if (previousTrack == null) {
-            frontier = in;
-            callBack = out;
-        } else if (in.contains(previousTrack)) {
-            callBack = in;
-            frontier = out;
-        } else if (out.contains(previousTrack)) {
-            callBack = out;
-            frontier = in;
+            frontier = new ArrayList<>(in);
+            callBack = new ArrayList<>(out);
+        } else if (contains(in, previousTrack)) {
+            callBack = new ArrayList<>(in);
+            frontier = new ArrayList<>(out);
+        } else if (contains(out, previousTrack)) {
+            callBack = new ArrayList<>(out);
+            frontier = new ArrayList<>(in);
         }
 
         // checks if our current track is an ending one
@@ -300,14 +312,15 @@ public class Graph {
             currentTrack.setIsEndTrack(true);
         }
 
-        // checks if the frontier/callback is behind a signal, if yes we connect the
-        // currentTrack with the frontier/callback tracks and then skip it.
-        if (!isNextTrackInSection(currentTrack, frontier)) {
-            connectTracks(frontier, currentTrack, tracks);
+        // a signal on this track closes off the end it stands at, so the tracks
+        // beyond it belong to another section. Record the relation, then stop
+        // following them.
+        if (isSeparatedFromAny(currentTrack, frontier)) {
+            connectTracks(frontier, currentTrack);
             frontier = new ArrayList<>();
         }
-        if (!isNextTrackInSection(currentTrack, callBack)) {
-            connectTracks(callBack, currentTrack, tracks);
+        if (isSeparatedFromAny(currentTrack, callBack)) {
+            connectTracks(callBack, currentTrack);
             callBack = new ArrayList<>();
         }
 
@@ -319,12 +332,11 @@ public class Graph {
         // frontier recursion step
         for (Track frontTrack : frontier) {
             // skips if we have visited the track already
-            if (previousTracks.contains(frontTrack)) {
+            if (contains(previousTracks, frontTrack)) {
                 continue;
             }
-            // if we have a signal and the frontTrack is therefor not in the same section we
-            // skip
-            if (hasSignalAttached(frontTrack) && !isInsideCurrentSection(currentTrack, frontTrack)) {
+            // a signal on the next track can put it in another section
+            if (network.separatedBySignalOn(frontTrack, currentTrack)) {
                 continue;
             }
             // if our frontTrack has already been visited, just take his frontNodes and skip
@@ -334,11 +346,11 @@ public class Graph {
                 continue;
             }
             // actual recursion step
-            frontierNodes.addAll(parseTracksToNodes(frontTrack, previousTracks, tracks, knownTracks));
+            frontierNodes.addAll(parseTracksToNodes(frontTrack, previousTracks, knownTracks));
         }
 
         // basecase
-        if (frontier.size() == 0 || frontierNodes.size() == 0) {
+        if (frontier.isEmpty() || frontierNodes.isEmpty()) {
             Node base = new Node();
             frontierNodes.add(base);
         }
@@ -358,13 +370,12 @@ public class Graph {
                 continue;
 
             // skips if we have visited the track already
-            if (previousTracks.contains(callbackTrack)) {
+            if (contains(previousTracks, callbackTrack)) {
                 continue;
             }
 
-            // if we have a signal and the callbacktrack is therefor not in the same section
-            // we skip
-            if (hasSignalAttached(callbackTrack) && !isInsideCurrentSection(currentTrack, callbackTrack)) {
+            // a signal on the next track can put it in another section
+            if (network.separatedBySignalOn(callbackTrack, currentTrack)) {
                 callBack.remove(callbackTrack);
                 continue;
             }
@@ -376,13 +387,13 @@ public class Graph {
                 continue;
             }
             // actual recursion step
-            callbackNodes.addAll(parseTracksToNodes(callbackTrack, previousTracks, tracks, knownTracks));
+            callbackNodes.addAll(parseTracksToNodes(callbackTrack, previousTracks, knownTracks));
         }
 
         // merging of callback and frontier Nodes, this is needed to map subpaths
         for (Node frontNode : frontierNodes) {
             // if our callback is empty, we add the given frontierNodes
-            if (callBack.size() == 0) {
+            if (callBack.isEmpty()) {
                 nodes.add(frontNode);
                 continue;
             }
@@ -399,187 +410,34 @@ public class Graph {
     }
 
     /**
-     * Checks if the given track has any signals attached.
-     * The method filters the signals of the track and checks if the resulting list
-     * is not empty.
-     *
-     * @param track The track to check for attached signals.
-     * @return true if the track has at least one signal attached, false otherwise.
+     * Whether a signal on {@code currentTrack} cuts it off from any of the
+     * given neighbours. One is enough: the whole set sits at the same end of the
+     * track, so a signal there separates all of them.
      */
-    private boolean hasSignalAttached(Track track) {
-        ArrayList<Entity> signals = filterSignals(track.getSignals(), matrix.getMatrix());
-        return !signals.isEmpty();
-    }
-
-    /**
-     * Checks if the next track is inside the current section based on the signals
-     * of the next track and the properties of the current and next tracks.
-     * The method first filters the signals of the next track. If there are any
-     * signals, it checks the properties of the current and next tracks to determine
-     * if the next track is inside the current section.
-     * The method considers the names and directions of the tracks, and the
-     * distances between the current track, the signal, and the next track.
-     *
-     * @param currentTrack The current track.
-     * @param nextTrack    The next track to be checked.
-     * @return true if the next track is inside the current section or there are no
-     *         signals, false otherwise.
-     */
-    private boolean isInsideCurrentSection(Track currentTrack, Track nextTrack) {
-        ArrayList<Entity> signals = filterSignals(nextTrack.getSignals(), matrix.getMatrix());
-        if (!signals.isEmpty()) {
-            for (Entity signal : signals) {
-                double offset = 0.0;
-
-                // this part maps diagonal straight rails with each other
-                if (currentTrack.getName().equals("straight-rail") && nextTrack.getName().equals("straight-rail")) {
-                    // look on the x-axis if these type of directions
-                    if ((currentTrack.getDirection() == 1 && nextTrack.getDirection() == 5)
-                            || (currentTrack.getDirection() == 5 && nextTrack.getDirection() == 1)) {
-                        return currentTrack.getPosition().getX() == nextTrack.getPosition().getX();
-                    }
-                    if ((currentTrack.getDirection() == 3 && nextTrack.getDirection() == 7)
-                            || (currentTrack.getDirection() == 7 && nextTrack.getDirection() == 3)) {
-                        return currentTrack.getPosition().getY() == nextTrack.getPosition().getY();
-                    }
-                }
-
-                // this part maps a curved rail to diagonal rail
-                if (currentTrack.getName().equals("curved-rail") &&
-                        nextTrack.getName().equals("straight-rail") &&
-                        nextTrack.getDirection() != 0 &&
-                        nextTrack.getDirection() != 2) {
-                    // these curved rails are always merged with the diagonal rail
-                    if (currentTrack.getDirection() == 7 || currentTrack.getDirection() == 1
-                            || currentTrack.getDirection() == 3 || currentTrack.getDirection() == 5) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                }
-
-                // this part maps a curved rail to a horizont or vertical straight-rail
-                if (currentTrack.getName().equals("curved-rail") && nextTrack.getName().equals("straight-rail")
-                        && (nextTrack.getDirection() == 0 || nextTrack.getDirection() == 2)) {
-                    offset = 0.3;
-                }
-                // if the signal is between a curved and a straight the cal need the offset
-                if (currentTrack.getDistance(signal) - offset < currentTrack.getDistance(nextTrack)) {
-                    return false;
-                    // this part maps horizon/vert straight-rails with each other
-                } else if (currentTrack.getName().equals("straight-rail")
-                        && nextTrack.getName().equals("straight-rail")) {
-                    if ((currentTrack.getDirection() == 0 || currentTrack.getDirection() == 2)
-                            && currentTrack.getDistance(signal) < 4.3) {
-                        return false;
-                    }
-
-                }
+    private boolean isSeparatedFromAny(Track currentTrack, List<Track> nextTracks) {
+        for (Track nextTrack : nextTracks) {
+            if (network.separatedBySignalOn(currentTrack, nextTrack)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
-    /**
-     * Checks if all the next tracks are inside the current section.
-     * The method first filters the signals of the current track. If there are any
-     * signals,
-     * it checks each next track to see if it's inside the current section. If any
-     * next track is not inside the current section,
-     * the method returns false. If there are no signals or all next tracks are
-     * inside the current section, the method returns true.
-     *
-     * @param currentTrack The current track from which signals are extracted.
-     * @param nextTracks   The list of next tracks to be checked.
-     * @return true if all next tracks are inside the current section or there are
-     *         no signals, false otherwise.
-     */
-    private boolean isNextTrackInSection(Track currentTrack, ArrayList<Track> nextTracks) {
-        ArrayList<Entity> signals = filterSignals(currentTrack.getSignals(), matrix.getMatrix());
-        if (!signals.isEmpty()) {
-            for (Track nextTrack : nextTracks) {
-                if (!isInsideCurrentSection(nextTrack, currentTrack)) {
-                    return false;
-                }
+    private static boolean sharesAny(List<Track> first, List<Track> second) {
+        for (Track track : second) {
+            if (contains(first, track)) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
-    /**
-     * Filters the provided lookups to find matching entities in the given 2D entity
-     * array.
-     * An entity matches a lookup if they have the same direction and name, and the
-     * lookup's x and y coordinates
-     * fall within the bounds of the entity array and point to a non-null list of
-     * entities. This method is primarily used for signals but it works with all
-     * entities.
-     *
-     * @param lookUps The array of lookups to be filtered.
-     * @param entries The 2D array of entity lists to search for matching entities.
-     * @return A list of entities that match the provided lookups.
-     */
-    private static ArrayList<Entity> filterSignals(LookUp[] lookUps, ArrayList<Entity>[][] entries) {
-        ArrayList<Entity> validLookUps = new ArrayList<>();
-        int x, y;
-        int maxX = entries.length;
-        int maxY = entries[0].length;
-        for (LookUp lookUp : lookUps) { // go through all possible lookups
-            x = lookUp.getX();
-            y = lookUp.getY();
-            if (x >= 0 && y >= 0 // x and y must be positive
-                    && x < maxX && y < maxY // must be smaller than the matrix
-                    && entries[x][y] != null) { // there has to be entities
-                for (int i = 0; i < entries[x][y].size(); i++) { // if all is true, iterate through the entities on x
-                                                                 // and y
-                    if (entries[x][y].get(i).getDirection() == lookUp.getDirection()
-                            && entries[x][y].get(i).getName().equals(lookUp.getName())) { // for a match we need same
-                                                                                          // direction and name
-                        validLookUps.add(entries[x][y].get(i));
-                    }
-                }
+    private static boolean contains(List<Track> tracks, Track wanted) {
+        for (Track track : tracks) {
+            if (track == wanted) {
+                return true;
             }
         }
-        return validLookUps;
-    }
-
-    /**
-     * Filters the provided lookups to find matching tracks in the given 2D track
-     * array.
-     * A track matches a lookup if they have the same direction and name, and the
-     * lookup's x and y coordinates
-     * fall within the bounds of the track array and point to a non-null list of
-     * tracks.
-     *
-     * @param lookUps The array of lookups to be filtered.
-     * @param tracks  The 2D array of track lists to search for matching tracks.
-     * @return A list of tracks that match the provided lookups.
-     */
-    private static ArrayList<Track> filterLookupsToTrack(LookUp[] lookUps, ArrayList<Track>[][] tracks) {
-        ArrayList<Track> validLookUps = new ArrayList<>();
-        int x, y;
-        int maxX = tracks.length;
-        int maxY = tracks[0].length;
-        for (LookUp lookUp : lookUps) { // go through all possible lookups
-            x = lookUp.getX();
-            y = lookUp.getY();
-            if (x >= 0 && y >= 0 // x and y must be positive
-                    && x < maxX && y < maxY // must be smaller than the matrix
-                    && tracks[x][y] != null) { // there has to be entities
-                for (int i = 0; i < tracks[x][y].size(); i++) { // if all is true, iterate through the entities on x and
-                                                                // y
-                    if (tracks[x][y].get(i).getDirection() == lookUp.getDirection()
-                            && tracks[x][y].get(i).getName().equals(lookUp.getName())) { // for a match we need same
-                                                                                         // direction and name
-                        validLookUps.add(tracks[x][y].get(i));
-                    }
-                }
-            }
-        }
-        return validLookUps;
-    }
-
-    public ArrayList<Section> getSections() {
-        return sections;
+        return false;
     }
 }

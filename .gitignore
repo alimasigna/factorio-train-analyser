@@ -34,3 +34,6 @@ build
 
 output.json
 *.txt
+
+# Blueprint strings the tests run against are source, not scratch files
+!app/src/test/resources/blueprints/*.txt
