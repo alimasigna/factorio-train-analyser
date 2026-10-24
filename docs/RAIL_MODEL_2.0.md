@@ -63,9 +63,11 @@ rails connect when their ends coincide and their headings differ by 8.
 | | 14 `╱` upper half | (0,-1) h2 | (-1,0) h10 |
 | `legacy-curved-rail` | 0 | (1,4) h8 | (-2,-3) h14 |
 | | 2 | (-1,4) h8 | (2,-3) h2 |
+| `rail-ramp` | 4 | (-8,0) h12 *ground* | (8,0) h4 *elevated* |
 
 Directions 4, 8 and 12 are the listed direction-0 row rotated clockwise; 6, 10
-and 14 are the direction-2 row rotated. Odd headings are the 1:2 slopes a
+and 14 are the direction-2 row rotated; the ramp's other three orientations are
+its direction-4 row rotated. Odd headings are the 1:2 slopes a
 half-diagonal end leaves at - 26.565°, which Factorio reports as the nearest
 direction value rather than the nominal 22.5°, so the tangents in
 `Direction.java` are the exact slopes and not the nominal angles.
@@ -81,14 +83,21 @@ Two things worth knowing from the table:
 - A **legacy diagonal** covers only half of the 2×2 block it sits in, which is
   why a 1.1 45° run alternates between two direction values. That is the detail
   the old code encoded as neighbours at (0,±2) and (±2,0).
+- A **`rail-ramp`** is the only piece with its two ends on different levels: it
+  is straight in plan view, 16 tiles long, with its ground end 8 tiles behind
+  the entity and its elevated end 8 tiles ahead of it. The elevated rail shapes
+  are identical to their ground counterparts, so they share the same table and
+  differ only in which level their ends are on.
 
 ## How the table was checked
 
 The offsets were derived from the geometry and then verified against three
 independently published 2.0 blueprint books, around 55 000 rail ends in total.
-Every end at a diagonal or half-diagonal heading matches another end exactly.
-The only unmatched ends are orthogonal ones running off the edge of a blueprint,
-and elevated rails meeting a ramp - both expected.
+Every end at a diagonal or half-diagonal heading matches another end exactly,
+and every elevated and ramp end matches too. The only unmatched ends are
+orthogonal ones running off the edge of a blueprint, which is expected. Adding
+the ramp to the table halved the unmatched rate, since before it the elevated
+ends that meet a ramp had nothing to match against.
 
 The test suite checks the same property from the other side: for each real
 blueprint it asserts that every ground rail ends up in some node of the model,
@@ -102,6 +111,14 @@ is measured data: 152 placements across 38 rail orientations, probed against
 Factorio 2.1.12 by the
 [Factorio Blueprint Editor](https://github.com/FactoryGameFan/factorio-blueprint-editor)
 project.
+
+The probe could not reach the elevated shapes - placing one in the game needs a
+rail support under it - so they read the table of the ground shape they match.
+That was checked the other way round: across 2351 signals in published
+blueprints, every signal is claimed by some rail once the elevated shapes read
+the ground table, and 16 are claimed by nothing without it. No signal in that
+data is left over for a `rail-ramp`, so a ramp takes none and a block runs
+straight through it.
 
 A signal faces the trains it governs, so its direction is *opposite* to the
 travel direction it permits. Combined with the ends, that gives the rule in
@@ -131,24 +148,43 @@ each other.
 
 ## Elevated rails
 
-The four elevated shapes are recognised and carry the same geometry as their
-ground counterparts, on a layer of their own, so rails only ever connect to
-rails on the same layer. They are **left out by default**:
-`new Graph(blueprint)` analyses the ground network and reports which elevated
-rails it skipped.
+Elevated track is modelled, and `new Graph(blueprint)` covers both levels.
 
-To finish the job, two things are needed:
+The rule is narrower than "elevated rails only interact with each other", and
+the difference matters:
 
-1. `rail-ramp` has to be measured - it is the piece that joins the two layers,
-   and without it an elevated network comes out disconnected from the ground one.
-   `RailGeometry.UNMAPPED_RAILS` is where it goes.
-2. `SignalSpots` has no entries for the elevated shapes, because placing one in
-   the game needs a rail support and the probe could not sweep signals around
-   them. Until that is measured an elevated rail gets no signals at all, which
-   would merge blocks that the game keeps apart.
+- **Nothing crosses between the levels.** A ground rail and an elevated rail
+  have disjoint collision masks in the game, so a flyover never shares a block
+  with the line beneath it. That is the whole point of elevated track.
+- **The two levels are one network all the same**, joined by `rail-ramp`. A
+  train drives off the ground, up a ramp and onto elevated track, so a *block*
+  can span both levels - a node in the paper's sense can hold ground rails, a
+  ramp and elevated rails together. What never happens is two unconnected nodes,
+  one on each level, being merged into a section because they happen to overlap
+  when seen from above.
 
-`rail-support` itself carries no train and needs nothing beyond being ignored.
-Once the two items above exist, `new Graph(blueprint, true)` is the whole switch.
+The collision masks are what settle it, measured from the prototype table:
+
+| Entity | Collision mask |
+| --- | --- |
+| `straight-rail` | `floor`, `is_lower_object`, `item`, `object`, `rail`, `water_tile` |
+| `elevated-straight-rail` | `elevated_rail` and nothing else |
+| `rail-ramp` | `elevated_rail`, `is_lower_object`, `is_object`, `object`, `rail`, `rail_support` |
+| `rail-support` | no `elevated_rail` - it has to overlap one |
+
+So a ground rail builds freely under an elevated one, and the game confirms it
+directly: a `straight-rail` can be created under an elevated rail, while a
+second `rail-ramp` cannot. A ramp carries *both* masks, which is why it blocks
+either level and nothing can be laid across it - so the question of which level
+a ramp is crossed on never arises in a buildable blueprint, and the model simply
+has it block both.
+
+A `rail-support` is the pillar holding elevated track up. It carries no train
+and cannot be joined to, so it is ignored.
+
+Passing `false` as the second argument to `Graph` analyses the ground network on
+its own. That cuts the model at every ramp and is reported on the console; it is
+there for isolating one level, not because the other is unsupported.
 
 ## Blueprints from before the update
 

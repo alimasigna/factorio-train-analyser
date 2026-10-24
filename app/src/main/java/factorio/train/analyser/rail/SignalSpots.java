@@ -27,9 +27,14 @@ import java.util.Map;
  * {@link RailNetwork} relies on that to work out which way a signal lets trains
  * run.
  *
- * <p>The four elevated rail types are deliberately absent. Placing one needs a
- * rail support, so the probe could not sweep signals around them; an absent
- * rail gets no signals rather than the wrong ones.
+ * <p>The probe could not sweep the four elevated rail types, because placing
+ * one in the game needs a rail support under it. They reuse the table of the
+ * ground shape they match, which was checked the other way round instead: over
+ * 2351 signals in published blueprints, every single signal is claimed by some
+ * rail once the elevated shapes read the ground table, and 16 of them are
+ * claimed by nothing without it. A {@code rail-ramp} takes no signal at all -
+ * no signal anywhere in that data is left over for one - so a block runs
+ * straight through a ramp from one layer to the other.
  *
  * @see <a href="https://github.com/FactoryGameFan/factorio-blueprint-editor">
  *      FactoryGameFan/factorio-blueprint-editor,
@@ -46,6 +51,13 @@ public final class SignalSpots {
 
     private static final Map<String, Map<Integer, List<Spot>>> SPOTS = build();
 
+    /** The elevated shapes take the signals of the ground shape they match. */
+    private static final Map<String, String> SAME_AS = Map.of(
+            "elevated-straight-rail", "straight-rail",
+            "elevated-half-diagonal-rail", "half-diagonal-rail",
+            "elevated-curved-rail-a", "curved-rail-a",
+            "elevated-curved-rail-b", "curved-rail-b");
+
     private SignalSpots() {
     }
 
@@ -54,7 +66,8 @@ public final class SignalSpots {
      * none are known for it.
      */
     public static List<Spot> of(String railName, int railDirection) {
-        Map<Integer, List<Spot>> byDirection = SPOTS.get(railName);
+        Map<Integer, List<Spot>> byDirection =
+                SPOTS.get(SAME_AS.getOrDefault(railName, railName));
         if (byDirection == null) {
             return List.of();
         }
