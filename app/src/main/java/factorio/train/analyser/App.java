@@ -13,6 +13,7 @@ import factorio.train.analyser.analyser.DeadlockAnalyser;
 import factorio.train.analyser.analyser.Result;
 import factorio.train.analyser.graph.Graph;
 import factorio.train.analyser.jsonmodels.Output;
+import factorio.train.analyser.visualization.DeadlockViewer;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -66,22 +67,29 @@ public class App {
         }
         DeadlockAnalyser analyser = new DeadlockAnalyser(graph);
         ArrayList<Result> result = analyser.deadlockCheck();
-        exportToJson(result, graph);
+        String json = toJson(result, graph);
 
         for (int i = 0; i < result.size(); i++) {
             if (result.get(i).getIsDeadlock()) {
+                DeadlockViewer.show(json);
+                exportToJson(result, graph);
                 return true;
             }
         }
         return false;
     }
 
-    public void exportToJson(ArrayList<Result> result, Graph graph) throws JsonIOException, IOException {
-            Gson gson = new GsonBuilder().create();
-            Output output = new Output(result, graph);
-            FileWriter writer = new FileWriter("./output.json");
-            gson.toJson(output, writer);
-            writer.close();
+    public String toJson(ArrayList<Result> result, Graph graph) {
+        Gson gson = new GsonBuilder().create();
+        Output output = new Output(result, graph);
+        return gson.toJson(output);
+    }
+
+    public void exportToJson(ArrayList<Result> result, Graph graph) throws IOException {
+        String json = toJson(result, graph);
+        try (FileWriter writer = new FileWriter("./output.json")) {
+            writer.write(json);
+        }
     }
 
     private String readFromFile() throws FileNotFoundException, IOException{
