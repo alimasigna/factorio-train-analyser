@@ -38,25 +38,21 @@ public class Graph {
     private int graphId;
 
     /**
-     * Builds the model of a blueprint. Elevated rails are left out; see
-     * {@link #Graph(String, boolean)}.
+     * Builds the model of a blueprint, both levels of it.
      *
      * @param encodedString the encoded blueprint string
      */
     public Graph(String encodedString) {
-        this(encodedString, false);
+        this(encodedString, true);
     }
 
     /**
      * Builds the model of a blueprint.
      *
      * @param encodedString the encoded blueprint string
-     * @param withElevated  whether to include the elevated rail layer. Elevated
-     *                      rails have the same shapes as their ground
-     *                      counterparts and are modelled on a layer of their
-     *                      own, but the {@code rail-ramp} that joins the two
-     *                      layers has no geometry yet, so an elevated network
-     *                      currently comes out disconnected from the ground one
+     * @param withElevated  whether to include the elevated rail layer. Leaving
+     *                      it out analyses the ground network on its own, which
+     *                      cuts the model at every {@code rail-ramp}
      */
     public Graph(String encodedString, boolean withElevated) {
         nodes = new ArrayList<>();

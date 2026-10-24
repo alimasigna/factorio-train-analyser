@@ -8,12 +8,13 @@ the update introduced (`half-diagonal-rail`, `curved-rail-a`, `curved-rail-b`)
 and the `legacy-` rails that old designs import as. Blueprints exported before
 2.0 are converted on the fly, the same way the game converts them.
 
-Elevated rails are recognised but left out of the analysis; the tool says which
-ones it skipped. See [the rail model](./docs/RAIL_MODEL_2.0.md) for how
-connections, signals and crossings are worked out, what has been verified, and
-what is still needed for elevated track. The paper describes the 1.1
-implementation, which that document supersedes for the blueprint-reading half of
-the tool.
+Elevated rails are modelled too, including the `rail-ramp` that joins the two
+levels. A flyover never shares a block with the track beneath it, while a block
+can still run from the ground up a ramp onto elevated track. See
+[the rail model](./docs/RAIL_MODEL_2.0.md) for how connections, signals and
+crossings are worked out and what has been verified against the game. The paper
+describes the 1.1 implementation, which that document supersedes for the
+blueprint-reading half of the tool.
 ## Requirements
 The project has been build and developed using the following versions.
 - Java 25 (the current LTS)

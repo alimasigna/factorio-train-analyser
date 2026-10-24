@@ -78,13 +78,11 @@ public class RailNetwork {
     /**
      * Builds the network from the entities of a blueprint.
      *
-     * @param entities      every entity of the blueprint; anything that is not
-     *                      a rail or a signal is ignored
-     * @param withElevated  whether to include the elevated rail layer. Elevated
-     *                      networks are reachable only through a
-     *                      {@code rail-ramp}, whose geometry is not measured
-     *                      yet, so passing true today yields an elevated layer
-     *                      that is disconnected from the ground one
+     * @param entities     every entity of the blueprint; anything that is not
+     *                     a rail or a signal is ignored
+     * @param withElevated whether to include the elevated rail layer. Leaving
+     *                     it out analyses the ground network on its own, which
+     *                     cuts the model at every {@code rail-ramp}
      */
     public RailNetwork(List<Entity> entities, boolean withElevated) {
         Set<String> skipped = new LinkedHashSet<>();
@@ -97,14 +95,11 @@ public class RailNetwork {
                         .add(entity);
                 continue;
             }
-            if (RailGeometry.isUnmappedRail(name)) {
-                skipped.add(name);
+            if (RailGeometry.isNonTrackRail(name) || !RailGeometry.isRail(name)) {
                 continue;
             }
-            if (!RailGeometry.isRail(name)) {
-                continue;
-            }
-            if (!withElevated && RailGeometry.isElevated(name)) {
+            if (!withElevated
+                    && (RailGeometry.isElevated(name) || RailGeometry.isRamp(name))) {
                 skipped.add(name);
                 continue;
             }
@@ -194,9 +189,12 @@ public class RailNetwork {
         for (RailEnd end : track.getEnds()) {
             List<Track> neighbours = new ArrayList<>();
             for (Track candidate : tracksByEnd.getOrDefault(key(end.x(), end.y()), List.of())) {
-                if (candidate == track || candidate.getLayer() != track.getLayer()) {
+                if (candidate == track) {
                     continue;
                 }
+                // RailEnd.meets() also requires the two ends to be on the same
+                // layer, which is what makes a ramp the only crossing point
+                // between the ground and elevated networks.
                 for (RailEnd candidateEnd : candidate.getEnds()) {
                     if (end.meets(candidateEnd)) {
                         neighbours.add(candidate);
@@ -266,7 +264,7 @@ public class RailNetwork {
         }
         List<Track> crossing = new ArrayList<>();
         for (Track candidate : candidates) {
-            if (candidate == track || candidate.getLayer() != track.getLayer()) {
+            if (candidate == track || !sharesALayer(track, candidate)) {
                 continue;
             }
             if (Polylines.cross(track.getCentreLine(), candidate.getCentreLine())) {
@@ -298,6 +296,18 @@ public class RailNetwork {
             }
         }
         return cells;
+    }
+
+    /**
+     * Whether two tracks occupy a level in common, and so can block each other.
+     * An elevated rail crossing over a ground one shares none, which is how a
+     * flyover stays out of the ground network's sections.
+     */
+    private static boolean sharesALayer(Track first, Track second) {
+        return (first.blocksLayer(RailGeometry.GROUND_LAYER)
+                        && second.blocksLayer(RailGeometry.GROUND_LAYER))
+                || (first.blocksLayer(RailGeometry.ELEVATED_LAYER)
+                        && second.blocksLayer(RailGeometry.ELEVATED_LAYER));
     }
 
     private static boolean containsSame(List<Track> tracks, Track wanted) {

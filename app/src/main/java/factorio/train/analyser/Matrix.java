@@ -114,7 +114,7 @@ public class Matrix {
      */
     private static boolean isRelevant(String name) {
         return RailGeometry.isRail(name)
-                || RailGeometry.isUnmappedRail(name)
+                || RailGeometry.isNonTrackRail(name)
                 || RAIL_SIGNAL.equals(name)
                 || RAIL_CHAIN_SIGNAL.equals(name)
                 || TRAIN_STOP.equals(name);
