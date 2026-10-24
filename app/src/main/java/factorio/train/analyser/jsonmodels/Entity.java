@@ -12,6 +12,10 @@ public class Entity {
         this.direction = direction;
     }
 
+    public int getEntityNumber() {
+        return entity_number;
+    }
+
     public Position getPosition() {
         return position;
     }

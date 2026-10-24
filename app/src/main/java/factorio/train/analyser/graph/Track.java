@@ -2,15 +2,26 @@ package factorio.train.analyser.graph;
 
 import factorio.train.analyser.jsonmodels.Entity;
 import factorio.train.analyser.jsonmodels.Position;
+import factorio.train.analyser.rail.RailEnd;
+import factorio.train.analyser.rail.RailGeometry;
 
 import java.util.ArrayList;
 
+/**
+ * A single rail entity from the blueprint, the piece the whole train route
+ * model is built from.
+ *
+ * <p>A track knows its own shape: the two {@link RailEnd}s a train can enter it
+ * through and the centre line it would run along. Those come from
+ * {@link RailGeometry}, so whether two tracks connect or cross is a question
+ * about geometry rather than a lookup in a table of neighbour positions.
+ */
 public class Track {
     private transient ArrayList<Node> nodes;
 
     private transient ArrayList<Node> frontierNodes;
     private transient boolean isEndTrack;
-    private transient int length;
+    private double length;
     private int direction;
     private Position position;
     private transient ArrayList<Track> goesTo;
@@ -19,17 +30,24 @@ public class Track {
     private transient static int numOfGeneratedTracks = 0;
     private int trackId;
 
-    public Track (Node parent, Entity entity) {
+    private transient RailEnd[] ends;
+    private transient double[][] centreLine;
+    private transient int layer;
+
+    public Track(Node parent, Entity entity) {
         frontierNodes = new ArrayList<>();
         nodes = new ArrayList<>();
         goesTo = new ArrayList<>();
         protectedFrom = new ArrayList<>();
         isEndTrack = false;
         if (parent != null) this.nodes.add(parent);
-        this.length = entity.getName().equals("straight-rail") ? 1 : 3;
         this.direction = entity.getDirection();
         this.position = new Position(entity.getPosition().getX(), entity.getPosition().getY());
         this.name = entity.getName();
+        this.length = RailGeometry.length(this.name, this.direction);
+        this.layer = RailGeometry.layer(this.name);
+        this.ends = RailGeometry.endsOf(this.name, this.direction, position.getX(), position.getY());
+        this.centreLine = RailGeometry.centreLine(this.name, this.direction, position.getX(), position.getY());
         this.trackId = ++numOfGeneratedTracks;
     }
 
@@ -41,12 +59,36 @@ public class Track {
         return trackId;
     }
 
-    public int getLength() {
+    /** Arc length of the rail in tiles. */
+    public double getLength() {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(double length) {
         this.length = length;
+    }
+
+    /**
+     * The two ends a train can enter this track through, in blueprint
+     * coordinates. The index is what {@link RailNetwork} and {@link Graph} mean
+     * by "the first" and "the second" end of a track.
+     */
+    public RailEnd[] getEnds() {
+        return ends;
+    }
+
+    /** The path a train takes across this track, as a polyline. */
+    public double[][] getCentreLine() {
+        return centreLine;
+    }
+
+    /**
+     * Ground level or elevated. Rails only connect to rails on the same layer,
+     * which is what keeps an elevated crossing separate from the ground one
+     * underneath it.
+     */
+    public int getLayer() {
+        return layer;
     }
 
     public void setProtectedFrom(Track protectedFrom) {
@@ -77,18 +119,6 @@ public class Track {
         this.nodes.remove(node);
     }
 
-    public LookUp[][] getConnected() {
-        return LookUp.lookUpConnected(this);
-    }
-
-    public LookUp[] getSignals() {
-        return LookUp.lookUpSignal(this);
-    }
-
-    public LookUp[] getCrossed() {
-        return LookUp.lookUpCrossed(this);
-    }
-
     public String getName() {
         return name;
     }
@@ -100,6 +130,7 @@ public class Track {
     public int getDirection() {
         return direction;
     }
+
     public ArrayList<Node> getNodes() {
         return this.nodes;
     }
@@ -108,13 +139,8 @@ public class Track {
         return frontierNodes;
     }
 
-    public double getDistance(Track track) {
-        return getDistance(this.getPosition().getX(), this.getPosition().getY(), track.getPosition().getX(), track.getPosition().getY());
-    }
-    public double getDistance(Entity signal) {
-        return getDistance(this.getPosition().getX(), this.getPosition().getY(), signal.getPosition().getX(), signal.getPosition().getY());
-    }
-    private double getDistance(double x1, double y1, double x2, double y2) {
-        return Math.sqrt(Math.pow(x1-x2,2) + Math.pow(y1-y2,2));
+    @Override
+    public String toString() {
+        return name + "@" + direction + " (" + position.getX() + "," + position.getY() + ")";
     }
 }

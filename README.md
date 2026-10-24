@@ -1,6 +1,19 @@
 # factorio-train-analyser
 A tool to analyse train blueprints from factorio to recognize deadlocks and performance issues. For now this tool can only analyse wether a deadlock is possible inside a given train section or not.
-If you are trying to understand the alogrithm behind this, you can read our [paper](./docs/studienarbeit.pdf) inside the docs folder.
+If you are trying to understand the alogrithm behind this, you can read our [paper](./docs/Studienarbeit.pdf) inside the docs folder.
+
+## Factorio version support
+Blueprints from Factorio 2.0 and later are supported, including the rail shapes
+the update introduced (`half-diagonal-rail`, `curved-rail-a`, `curved-rail-b`)
+and the `legacy-` rails that old designs import as. Blueprints exported before
+2.0 are converted on the fly, the same way the game converts them.
+
+Elevated rails are recognised but left out of the analysis; the tool says which
+ones it skipped. See [the rail model](./docs/RAIL_MODEL_2.0.md) for how
+connections, signals and crossings are worked out, what has been verified, and
+what is still needed for elevated track. The paper describes the 1.1
+implementation, which that document supersedes for the blueprint-reading half of
+the tool.
 ## Requirements
 The project has been build and developed using the following versions.
 - Java 25 (the current LTS)
