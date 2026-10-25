@@ -48,23 +48,32 @@ public final class DeadlockViewer {
     static final class Track {
         final int id;
         final String name;
-        final int dir;
-        final double jx, jy;   // original position from the JSON (matrix coordinates)
-        final double x, y;     // in Tiles
+        final int dir;         // normalised to the 8 directions 0..7 (N, NE, E, ...)
+        final int rawDir;      // direction as found in the JSON
+        final boolean supported;
+        final double jx, jy;   // original position from the JSON
+        final double x, y;     // in tiles
         final Path2D shape;
         final Point2D mid;
         final double[][] ends; // end points (tiles) of the rail piece
         Shape railsCache, tiesCache;
 
-        Track(int id, String name, int dir, double jx, double jy) {
+        /**
+         * @param modern true for the new output format (legacy rails, 16 directions, positions already in tiles),
+         *               false for the old format (8 directions, positions = tiles * 2).
+         */
+        Track(int id, String name, int rawDir, double jx, double jy, boolean modern) {
             this.id = id;
             this.name = name;
-            this.dir = dir;
+            this.rawDir = rawDir;
+            this.dir = modern ? ((rawDir % 16) + 16) % 16 / 2 : rawDir;
             this.jx = jx;
             this.jy = jy;
-            this.x = jx / 2.0;
-            this.y = jy / 2.0;
-            Geometry g = Geometry.of(name, dir, x, y);
+            this.x = modern ? jx : jx / 2.0;
+            this.y = modern ? jy : jy / 2.0;
+            String base = name == null ? "" : name.replaceFirst("^legacy-", "");
+            this.supported = base.equals("straight-rail") || base.equals("curved-rail");
+            Geometry g = Geometry.of(base.equals("curved-rail") ? "curved-rail" : "straight-rail", dir, x, y);
             this.shape = g.shape;
             this.mid = g.mid;
             this.ends = g.ends;
@@ -92,14 +101,14 @@ public final class DeadlockViewer {
 
     static final class Node {
         final int id;
-        final int length;
+        final double length;
         final boolean input, output;
         final List<Integer> trackIds = new ArrayList<>();
         final List<List<Integer>> next = new ArrayList<>();
         final List<List<Integer>> protectedFrom = new ArrayList<>();
         int sectionId = -1;
 
-        Node(int id, int length, boolean input, boolean output) {
+        Node(int id, double length, boolean input, boolean output) {
             this.id = id;
             this.length = length;
             this.input = input;
@@ -169,6 +178,8 @@ public final class DeadlockViewer {
         final Map<Integer, Track> tracks = new LinkedHashMap<>();
         final Map<Integer, Node> nodes = new LinkedHashMap<>();
         final List<Result> results = new ArrayList<>();
+        boolean modern;                                   // new output format
+        final Set<String> unsupported = new TreeSet<>();  // rail types that cannot be drawn exactly
         private final Map<Integer, Polyline> chains = new HashMap<>();
         private Map<String, Integer> endCount;
 
@@ -457,6 +468,8 @@ public final class DeadlockViewer {
             }
         }
 
+        resolveFronts(m, sc);
+
         // text
         StringBuilder cyc = new StringBuilder();
         StringBuilder ex = new StringBuilder();
@@ -513,23 +526,89 @@ public final class DeadlockViewer {
         t.nodeId = node.id;
         t.targetNode = target.id;
         t.chain = m.chain(node);
-        if (t.chain == null) return t;
-        double L = t.chain.length;
-        // front end = the end that is closer to the target node
-        double d0 = 1e9, d1 = 1e9;
-        for (int tid : target.trackIds) {
-            Track tt = m.tracks.get(tid);
-            if (tt == null) continue;
-            for (double[] e : tt.ends) {
-                d0 = Math.min(d0, Math.hypot(t.chain.x[0] - e[0], t.chain.y[0] - e[1]));
-                d1 = Math.min(d1, Math.hypot(t.chain.x[t.chain.x.length - 1] - e[0], t.chain.y[t.chain.y.length - 1] - e[1]));
+        return t;
+    }
+
+    /**
+     * Decides for every train at which end of its node it stands (= its travel direction).
+     * 1. input nodes: the train stands at the end that is not the open end of the network,
+     * 2. otherwise: the end that is clearly closer to the target node,
+     * 3. otherwise (e.g. two nodes forming a ring touch at both ends): derived from the neighbouring train in the
+     *    waiting cycle, because a train enters a node where its predecessor leaves its own node.
+     */
+    private static void resolveFronts(Model m, Scenario sc) {
+        int n = sc.trains.size();
+        Boolean[] atEnd = new Boolean[n];
+        for (int i = 0; i < n; i++) {
+            Train t = sc.trains.get(i);
+            if (t.chain == null) {
+                atEnd[i] = true;
+                continue;
+            }
+            Node node = m.nodes.get(t.nodeId);
+            Polyline c = t.chain;
+            int last = c.x.length - 1;
+            if (node.input && !node.output) {
+                boolean openStart = m.endpointCount(c.x[0], c.y[0]) == 1, openEnd = m.endpointCount(c.x[last], c.y[last]) == 1;
+                if (openStart != openEnd) {
+                    atEnd[i] = openStart;   // open end is the entrance, so the train faces the other end
+                    continue;
+                }
+            }
+            Node target = m.nodes.get(t.targetNode);
+            double d0 = 1e9, d1 = 1e9;
+            for (int tid : target.trackIds) {
+                Track tt = m.tracks.get(tid);
+                if (tt == null) continue;
+                for (double[] e : tt.ends) {
+                    d0 = Math.min(d0, Math.hypot(c.x[0] - e[0], c.y[0] - e[1]));
+                    d1 = Math.min(d1, Math.hypot(c.x[last] - e[0], c.y[last] - e[1]));
+                }
+            }
+            if (Math.abs(d0 - d1) > 0.3) atEnd[i] = d1 < d0;
+        }
+        for (int guard = 0; guard < 2 * n + 2; guard++) {
+            boolean changed = false, undecided = false;
+            for (int i = 0; i < n; i++) {
+                if (atEnd[i] != null) continue;
+                undecided = true;
+                Polyline c = sc.trains.get(i).chain;
+                int last = c.x.length - 1;
+                for (int[] w : sc.waits) {
+                    if (w[1] != i || atEnd[w[0]] == null) continue;     // w[0] waits for train i
+                    Train pred = sc.trains.get(w[0]);
+                    double[] fp = pred.chain.at(atEnd[w[0]] ? pred.chain.length : 0);
+                    double e0 = Math.hypot(c.x[0] - fp[0], c.y[0] - fp[1]), e1 = Math.hypot(c.x[last] - fp[0], c.y[last] - fp[1]);
+                    if (Math.abs(e0 - e1) > 0.3) {
+                        atEnd[i] = e0 < e1;   // entrance is the end next to the predecessor's front, the train faces the other end
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+            if (!undecided) break;
+            if (!changed) {
+                for (int i = 0; i < n; i++) {
+                    if (atEnd[i] == null) {
+                        atEnd[i] = true;      // no information at all: pick one direction
+                        break;
+                    }
+                }
             }
         }
-        t.frontAtEnd = d1 <= d0;
+        for (int i = 0; i < n; i++) layout(sc.trains.get(i), atEnd[i] == null || atEnd[i]);
+    }
+
+    /** Places locomotive and wagons on the node's centre line, with the front at the chosen end. */
+    private static void layout(Train t, boolean frontAtEnd) {
+        t.frontAtEnd = frontAtEnd;
+        if (t.chain == null) return;
+        double L = t.chain.length;
         double gap = Math.min(0.5, L * 0.08);
         double usable = L - 2 * gap;
         double locoLen = Math.min(5.4, usable);
         double wagonLen = 5.4, coupling = 0.4;
+        t.cars.clear();
         t.cars.add(new double[]{0, locoLen});
         double d = locoLen;
         for (int i = 0; i < 2; i++) {
@@ -543,7 +622,6 @@ public final class DeadlockViewer {
         t.s0 = Math.min(a, b);
         t.s1 = Math.max(a, b);
         t.locoMid = t.front + t.sign * locoLen / 2;
-        return t;
     }
 
     // ------------------------------------------------------------------------------------------
@@ -556,6 +634,7 @@ public final class DeadlockViewer {
         if (!(rootObj instanceof Map)) throw new IllegalArgumentException("JSON root is not an object");
         Map<String, Object> root = (Map<String, Object>) rootObj;
         Model m = new Model();
+        m.modern = detectModern(root);
 
         Object graph = root.get("graph");
         if (graph instanceof Map) {
@@ -594,12 +673,50 @@ public final class DeadlockViewer {
         return m;
     }
 
+    /**
+     * Detects the output format. The new format uses "legacy-" rail names, 16 directions, real tile positions and a
+     * "length" per track; the old format uses plain rail names, 8 directions and positions doubled (tiles * 2).
+     */
+    @SuppressWarnings("unchecked")
+    private static boolean detectModern(Map<String, Object> root) {
+        List<Object> nodes = new ArrayList<>();
+        Object graph = root.get("graph");
+        if (graph instanceof Map && ((Map<String, Object>) graph).get("sections") instanceof List) {
+            for (Object so : (List<Object>) ((Map<String, Object>) graph).get("sections")) {
+                Object nl = ((Map<String, Object>) so).get("nodes");
+                if (nl instanceof List) nodes.addAll((List<Object>) nl);
+            }
+        }
+        if (root.get("result") instanceof List) {
+            for (Object ro : (List<Object>) root.get("result")) {
+                Object path = ((Map<String, Object>) ro).get("deadlockPath");
+                if (path instanceof List) nodes.addAll((List<Object>) path);
+            }
+        }
+        boolean oddDirection = false;
+        for (Object no : nodes) {
+            Object tl = ((Map<String, Object>) no).get("tracks");
+            if (!(tl instanceof List)) continue;
+            for (Object to : (List<Object>) tl) {
+                Map<String, Object> t = (Map<String, Object>) to;
+                String name = String.valueOf(t.get("name"));
+                if (name.startsWith("legacy-") || t.containsKey("length")) return true;
+                if (num(t.get("direction"), 0) > 7) oddDirection = true;
+            }
+        }
+        return oddDirection;
+    }
+
+    private static String fmt(double v) {
+        return v == Math.rint(v) ? String.valueOf((long) v) : String.format(Locale.ROOT, "%.1f", v);
+    }
+
     @SuppressWarnings("unchecked")
     private static Node readNode(Model m, Map<String, Object> o) {
         int id = (int) num(o.get("nodeId"), -1);
         Node existing = m.nodes.get(id);
         if (existing != null) return existing;
-        Node n = new Node(id, (int) num(o.get("length"), 0),
+        Node n = new Node(id, num(o.get("length"), 0),
                 Boolean.TRUE.equals(o.get("isInput")), Boolean.TRUE.equals(o.get("isOutput")));
         Object tl = o.get("tracks");
         if (tl instanceof List) {
@@ -607,8 +724,12 @@ public final class DeadlockViewer {
                 Map<String, Object> t = (Map<String, Object>) to;
                 int tid = (int) num(t.get("trackId"), -1);
                 Map<String, Object> pos = (Map<String, Object>) t.get("position");
-                m.tracks.computeIfAbsent(tid, k -> new Track(tid, (String) t.get("name"),
-                        (int) num(t.get("direction"), 0), num(pos.get("x"), 0), num(pos.get("y"), 0)));
+                m.tracks.computeIfAbsent(tid, k -> {
+                    Track tr = new Track(tid, (String) t.get("name"), (int) num(t.get("direction"), 0),
+                            num(pos.get("x"), 0), num(pos.get("y"), 0), m.modern);
+                    if (!tr.supported) m.unsupported.add(String.valueOf(tr.name));
+                    return tr;
+                });
                 n.trackIds.add(tid);
             }
         }
@@ -980,6 +1101,7 @@ public final class DeadlockViewer {
 
             // "waits for" arrows between the trains
             if (showTrains && showWaitArrows) {
+                List<Rectangle2D> placed = new ArrayList<>(badgeRects.values());
                 for (int[] w : scenario.waits) {
                     if (w[1] < 0) continue;
                     Train a = scenario.trains.get(w[0]), b = scenario.trains.get(w[1]);
@@ -988,7 +1110,7 @@ public final class DeadlockViewer {
                     Point2D pa = world.transform(new Point2D.Double(ca[0], ca[1]), null);
                     Point2D pb = world.transform(new Point2D.Double(cb[0], cb[1]), null);
                     g.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1f, new float[]{9f, 6f}, 0f));
-                    waitArrow(g, pa, pb, a.waitingOnly ? new Color(0xffd166, false).darker() : WAIT_ARROW, a.index, b.index);
+                    waitArrow(g, pa, pb, a.waitingOnly ? new Color(0xffd166, false).darker() : WAIT_ARROW, a.index, b.index, placed);
                 }
             }
 
@@ -1196,13 +1318,14 @@ public final class DeadlockViewer {
         }
 
         /** Dashed, curved "waits for" arrow. The arc bends sideways so that the arrow and its return arrow stay apart. */
-        private void waitArrow(Graphics2D g, Point2D a, Point2D b, Color c, int from, int to) {
+        private void waitArrow(Graphics2D g, Point2D a, Point2D b, Color c, int from, int to, List<Rectangle2D> placed) {
             double dx = b.getX() - a.getX(), dy = b.getY() - a.getY(), d = Math.hypot(dx, dy);
-            if (d < 70) return;
+            if (d < 12) return;
+            double trim = Math.min(34, d * 0.28);
             double ux = dx / d, uy = dy / d, nx = -uy, ny = ux;
             double bend = Math.min(70, d * 0.20);
-            Point2D s = new Point2D.Double(a.getX() + ux * 34, a.getY() + uy * 34);
-            Point2D e = new Point2D.Double(b.getX() - ux * 34, b.getY() - uy * 34);
+            Point2D s = new Point2D.Double(a.getX() + ux * trim, a.getY() + uy * trim);
+            Point2D e = new Point2D.Double(b.getX() - ux * trim, b.getY() - uy * trim);
             Point2D ctl = new Point2D.Double((s.getX() + e.getX()) / 2 + nx * bend, (s.getY() + e.getY()) / 2 + ny * bend);
             QuadCurve2D q = new QuadCurve2D.Double(s.getX(), s.getY(), ctl.getX(), ctl.getY(), e.getX(), e.getY());
             g.setColor(new Color(0, 0, 0, 110));
@@ -1220,12 +1343,20 @@ public final class DeadlockViewer {
             g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 11));
             FontMetrics fm = g.getFontMetrics();
             double w = fm.stringWidth(t) + 12, h = fm.getHeight() + 2;
-            RoundRectangle2D rr = new RoundRectangle2D.Double(mx - w / 2, my - h / 2, w, h, 10, 10);
+            Rectangle2D box = new Rectangle2D.Double(mx - w / 2, my - h / 2, w, h);
+            for (int tries = 0; tries < 12; tries++) {
+                boolean hit = false;
+                for (Rectangle2D o : placed) if (o.intersects(box)) { hit = true; break; }
+                if (!hit) break;
+                box.setRect(box.getX(), box.getY() + h + 3, w, h);
+            }
+            placed.add(box);
+            RoundRectangle2D rr = new RoundRectangle2D.Double(box.getX(), box.getY(), w, h, 10, 10);
             g.setColor(new Color(0x12161b));
             g.fill(rr);
             g.setColor(c);
             g.draw(rr);
-            g.drawString(t, (float) (mx - w / 2 + 6), (float) (my - h / 2 + fm.getAscent() + 1));
+            g.drawString(t, (float) (box.getX() + 6), (float) (box.getY() + fm.getAscent() + 1));
         }
 
         private void head(Graphics2D g, Point2D e, double ang, double size) {
@@ -1252,6 +1383,17 @@ public final class DeadlockViewer {
                     ? (scenario.trains.isEmpty() ? r.path.size() + " nodes in path" : "Waiting cycle: " + scenario.cycleText + "   ·   " + r.path.size() + " nodes in path")
                     : "";
             g.drawString(sub, 18, 49);
+            if (!model.unsupported.isEmpty()) {
+                String warn = "Unsupported rail types drawn as straight lines: " + String.join(", ", model.unsupported);
+                g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+                FontMetrics wf = g.getFontMetrics();
+                int ww = wf.stringWidth(warn) + 20;
+                g.setColor(new Color(0x3a2b0f));
+                g.fillRoundRect(18, 58, ww, 24, 12, 12);
+                g.setColor(new Color(0xffc857));
+                g.drawRoundRect(18, 58, ww, 24, 12, 12);
+                g.drawString(warn, 28, 75);
+            }
 
             // legend
             Object[][] items = {
@@ -1429,7 +1571,7 @@ public final class DeadlockViewer {
         head.setFont(head.getFont().deriveFont(Font.BOLD, 18f));
         head.setForeground(TEXT);
         head.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel sub = new JLabel("Factorio train network");
+        JLabel sub = new JLabel("Factorio train network  ·  " + (model.modern ? "new output format" : "old output format"));
         sub.setFont(sub.getFont().deriveFont(12f));
         sub.setForeground(MUTED);
         sub.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1578,14 +1720,14 @@ public final class DeadlockViewer {
             }
             StringBuilder sb = new StringBuilder();
             sb.append("Node ").append(n.id).append("   Section ").append(n.sectionId)
-                    .append("   Length ").append(n.length).append('\n');
+                    .append("   Length ").append(fmt(n.length)).append('\n');
             sb.append("Input: ").append(n.input).append("   Output: ").append(n.output).append('\n');
             sb.append("nextNodes: ").append(n.next).append('\n');
             sb.append("protectedFrom: ").append(n.protectedFrom).append("\n\n");
             sb.append("Tracks (id, name, dir, x/y from JSON):\n");
             for (int tid : n.trackIds) {
                 Track t = model.tracks.get(tid);
-                sb.append(String.format(Locale.ROOT, " t%-3d %-13s d%d  %.0f/%.0f%n", t.id, t.name, t.dir, t.jx, t.jy));
+                sb.append(String.format(Locale.ROOT, " t%-3d %-20s d%d  %.0f/%.0f%n", t.id, t.name, t.rawDir, t.jx, t.jy));
             }
             detail.setText(sb.toString());
             detail.setCaretPosition(0);
